@@ -86,6 +86,22 @@ export const Sidebar = ({ sections, userName, userRole, avatarUrl, isOpen, onClo
                         </div>
                     ))}
                 </nav>
+
+                {userName && (
+                    <div className="sidebar-user">
+                        <div className="user-avatar">
+                            {avatarUrl ? (
+                                <img src={avatarUrl} alt={userName} />
+                            ) : (
+                                userName.charAt(0).toUpperCase()
+                            )}
+                        </div>
+                        <div className="user-info">
+                            <span className="user-name">{userName}</span>
+                            <span className="user-role">{userRole || 'User'}</span>
+                        </div>
+                    </div>
+                )}
             </aside>
         </>
     );
