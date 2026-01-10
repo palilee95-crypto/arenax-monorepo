@@ -75,7 +75,7 @@ export const TopBar = ({ userName, userRole, avatarUrl, statusBadge, onMenuClick
                     </div>
 
                     {isMenuOpen && (
-                        <div className="user-menu-dropdown">
+                        <div className="user-menu-dropdown" onClick={(e) => e.stopPropagation()}>
                             <div className="menu-header">
                                 <div className="menu-user-info">
                                     <span className="menu-name">{userName}</span>
