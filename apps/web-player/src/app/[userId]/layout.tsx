@@ -64,6 +64,8 @@ export default async function UserLayout({
                             userRole={userRole}
                             avatarUrl={profile.avatar_url}
                             statusBadge="PLAYER: ACTIVE"
+                            profileHref={`/${userId}`}
+                            settingsHref={`/${userId}/settings`}
                         />
                         <main className="app-content">
                             {children}

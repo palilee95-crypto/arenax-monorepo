@@ -50,6 +50,8 @@ export default async function UserLayout({
                     userName={userName}
                     userRole={userRole}
                     statusBadge="VENUE OWNER: ACTIVE"
+                    profileHref={`/${userId}`}
+                    settingsHref={`/${userId}/settings`}
                 />
                 <main className="app-content">
                     {children}
