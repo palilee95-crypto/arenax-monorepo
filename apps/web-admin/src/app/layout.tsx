@@ -24,7 +24,6 @@ export const metadata: Metadata = {
 
 import { redirect } from "next/navigation";
 
-import { DevicePreview } from "@arenax/ui";
 
 export default function RootLayout({
   children,
@@ -34,9 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <DevicePreview>
-          {children}
-        </DevicePreview>
+        {children}
       </body>
     </html>
   );

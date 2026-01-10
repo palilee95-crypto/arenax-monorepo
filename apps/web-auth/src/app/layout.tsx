@@ -24,8 +24,6 @@ export const metadata: Metadata = {
   description: "Centralized authentication for Arenax MVP",
 };
 
-import { DevicePreview } from "@arenax/ui";
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -33,10 +31,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable}`}>
-        <DevicePreview>
-          {children}
-        </DevicePreview>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable} `}>
+        {children}
       </body>
     </html>
   );
