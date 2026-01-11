@@ -23,48 +23,55 @@ export default function LoginPage() {
     const formData = new FormData(e.target as HTMLFormElement);
     const email = (formData.get("email") as string)?.trim();
     const password = (formData.get("password") as string)?.trim();
-    console.log("Email (trimmed):", email);
 
     try {
-      console.log("Querying profiles for:", email);
-      // Query profiles table for the user
-      const { data, error: fetchError } = await supabase
+      // 1. Sign in with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (authError) throw authError;
+
+      if (!authData.user) throw new Error("Login failed");
+
+      // 2. Fetch user profile to get role
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('*')
-        .eq('email', email)
-        .eq('password', password)
+        .select('role, id')
+        .eq('id', authData.user.id)
         .single();
 
-      console.log("Query result:", { data, fetchError });
-
-      if (fetchError) {
-        console.error("Supabase fetch error:", fetchError);
-        throw new Error(fetchError.message || "Invalid email or password");
+      if (profileError) {
+        console.error("Profile fetch error:", profileError);
+        // Fallback to metadata if profile fetch fails (optional)
+        // throw new Error("Profile not found");
       }
 
-      if (!data) {
-        throw new Error("User not found or incorrect password");
-      }
+      const role = profile?.role || authData.user.user_metadata?.role || 'player';
 
-      console.log("Login successful, redirecting to:", data.role);
+      console.log("Login successful, redirecting to:", role);
+
       // Redirect based on role
       const roleRedirects: Record<string, string> = {
-        'player': `${process.env.NEXT_PUBLIC_PLAYER_URL || 'http://localhost:3001'}/${data.id}`,
-        'venue-owner': `${process.env.NEXT_PUBLIC_VENUE_URL || 'http://localhost:3002'}/${data.id}`,
-        'admin': `${process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3003'}/${data.id}`
+        'player': `${process.env.NEXT_PUBLIC_PLAYER_URL || 'http://localhost:3001'}/${authData.user.id}`,
+        'venue-owner': `${process.env.NEXT_PUBLIC_VENUE_URL || 'http://localhost:3002'}/${authData.user.id}`,
+        'admin': `${process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3003'}/${authData.user.id}`
       };
 
-      const redirectUrl = roleRedirects[data.role] || `http://localhost:3001/${data.id}`;
+      const redirectUrl = roleRedirects[role] || `http://localhost:3001/${authData.user.id}`;
       console.log("Redirect URL:", redirectUrl);
 
       // Set cookie for session persistence across ports
-      const cookieName = data.role === 'player' ? 'arenax_player_id' :
-        data.role === 'venue-owner' ? 'arenax_venue_id' :
+      const cookieName = role === 'player' ? 'arenax_player_id' :
+        role === 'venue-owner' ? 'arenax_venue_id' :
           'arenax_admin_id';
 
       console.log("Setting cookie:", cookieName);
       // Omit domain=localhost as it can cause issues on some browsers
-      document.cookie = `${cookieName}=${data.id}; path=/; max-age=86400; SameSite=Lax`;
+      document.cookie = `${cookieName}=${authData.user.id}; path=/; max-age=86400; SameSite=Lax`;
+
+      // Also set the Supabase session cookie if needed by middleware (handled by Supabase client usually, but good to be explicit if we have custom middleware)
 
       window.location.href = redirectUrl;
 

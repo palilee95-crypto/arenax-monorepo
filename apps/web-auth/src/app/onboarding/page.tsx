@@ -65,20 +65,46 @@ function OnboardingContent() {
         setLoading(true);
         setError(null);
 
-        const { data: { user } } = await supabase.auth.getUser();
-        const userId = user?.id || crypto.randomUUID();
-
         try {
+            // 1. Sign up with Supabase Auth
+            console.log("Attempting Supabase SignUp with:", email);
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email: email?.trim(),
+                password: password?.trim(),
+                options: {
+                    data: {
+                        first_name: firstName?.trim(),
+                        last_name: lastName?.trim(),
+                        role: role
+                    },
+                    emailRedirectTo: `${window.location.origin}/auth/callback`
+                }
+            });
+
+            console.log("SignUp Result:", { authData, authError });
+
+            if (authError) {
+                console.error("SignUp Error:", authError);
+                throw authError;
+            }
+
+            if (!authData.user) throw new Error("Signup failed");
+
+            const userId = authData.user.id;
+
+            // 2. Insert into profiles table
+            // Note: If you have a trigger on auth.users, this might be redundant or cause a duplicate key error.
+            // For now, we assume manual insertion is needed or handled gracefully.
             if (role === "player") {
-                const { data, error: insertError } = await supabase
+                const { error: insertError } = await supabase
                     .from('profiles')
-                    .insert([
+                    .upsert([ // Use upsert to handle potential trigger conflicts
                         {
                             id: userId,
                             first_name: firstName?.trim(),
                             last_name: lastName?.trim(),
                             email: email?.trim(),
-                            password: password?.trim(),
+                            // password: password?.trim(), // DO NOT STORE PASSWORD IN PLAIN TEXT
                             role: role,
                             nationality: nationality?.trim(),
                             state: state?.trim() || null,
@@ -94,20 +120,27 @@ function OnboardingContent() {
 
                 if (insertError) throw insertError;
 
-                // Set cookie for session persistence
+                // Set cookie for session persistence (legacy support)
                 document.cookie = `arenax_player_id=${userId}; path=/; max-age=86400; SameSite=Lax`;
+
+                // Check if email confirmation is required
+                if (authData.user && !authData.session) {
+                    alert("Registration successful! Please check your email to verify your account.");
+                    window.location.href = '/'; // Redirect to login
+                    return;
+                }
 
                 window.location.href = `${process.env.NEXT_PUBLIC_PLAYER_URL || 'http://localhost:3001'}/${userId}`;
             } else if (role === "venue-owner") {
                 // Save profile first
-                const { data: profileData, error: profileError } = await supabase
+                const { error: profileError } = await supabase
                     .from('profiles')
-                    .insert([{
+                    .upsert([{
                         id: userId,
                         first_name: firstName?.trim(),
                         last_name: lastName?.trim(),
                         email: email?.trim(),
-                        password: password?.trim(),
+                        // password: password?.trim(),
                         role: role,
                         nationality: nationality?.trim(),
                         state: state?.trim() || null,
@@ -118,7 +151,7 @@ function OnboardingContent() {
                 if (profileError) throw profileError;
 
                 // Save venue details
-                const { data: venueData, error: venueError } = await supabase
+                const { error: venueError } = await supabase
                     .from('venues')
                     .insert([
                         {
@@ -137,6 +170,12 @@ function OnboardingContent() {
                 // Set cookie for session persistence
                 const cookieName = 'arenax_venue_id';
                 document.cookie = `${cookieName}=${userId}; path=/; max-age=86400; SameSite=Lax`;
+
+                if (authData.user && !authData.session) {
+                    alert("Registration successful! Please check your email to verify your account.");
+                    window.location.href = '/';
+                    return;
+                }
 
                 window.location.href = `${process.env.NEXT_PUBLIC_VENUE_URL || 'http://localhost:3002'}/${userId}`;
             }

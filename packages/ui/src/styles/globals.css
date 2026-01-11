@@ -431,3 +431,16 @@ body.sidebar-closed .main-wrapper {
         grid-column: span 1;
     }
 }
+
+/* Prevent iOS zoom on focus */
+@media screen and (max-width: 768px) {
+
+    input,
+    select,
+    textarea,
+    .form-group input,
+    .auth-select,
+    .auth-textarea {
+        font-size: 16px !important;
+    }
+}
