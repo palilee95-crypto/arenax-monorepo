@@ -233,6 +233,17 @@ export default function MyTeamPage() {
                     role: 'member',
                     profiles: acceptedRequest.profiles
                 }]);
+
+                // 4. Create notification for the player
+                await supabase
+                    .from('notifications')
+                    .insert({
+                        user_id: requestUserId,
+                        type: 'team_request_accepted',
+                        title: 'Team Request Accepted!',
+                        message: `Your request to join ${team.name} has been accepted. Welcome to the team!`,
+                        link: `/${requestUserId}/myteam`
+                    });
             }
             setRequests(prev => prev.filter(r => r.id !== requestId));
 
@@ -242,7 +253,7 @@ export default function MyTeamPage() {
         }
     };
 
-    const handleRejectRequest = async (requestId: string) => {
+    const handleRejectRequest = async (requestId: string, requestUserId: string) => {
         try {
             const { error } = await supabase
                 .from('team_requests')
@@ -250,6 +261,17 @@ export default function MyTeamPage() {
                 .eq('id', requestId);
 
             if (error) throw error;
+
+            // Create notification for the player
+            await supabase
+                .from('notifications')
+                .insert({
+                    user_id: requestUserId,
+                    type: 'team_request_rejected',
+                    title: 'Team Request Update',
+                    message: `Your request to join ${team.name} has been declined.`,
+                    link: `/${requestUserId}/find-squad`
+                });
 
             setRequests(prev => prev.filter(r => r.id !== requestId));
             alert("Request rejected.");
@@ -453,7 +475,7 @@ export default function MyTeamPage() {
                                                 </div>
                                             </div>
                                             <div className="request-actions">
-                                                <button className="reject-btn" onClick={() => handleRejectRequest(request.id)}>
+                                                <button className="reject-btn" onClick={() => handleRejectRequest(request.id, request.user_id)}>
                                                     Reject
                                                 </button>
                                                 <button className="accept-btn" onClick={() => handleAcceptRequest(request.id, request.user_id)}>

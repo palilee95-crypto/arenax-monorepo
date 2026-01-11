@@ -60,6 +60,7 @@ export default async function UserLayout({
                     />
                     <div className="main-wrapper">
                         <TopBar
+                            userId={userId}
                             userName={userName}
                             userRole={userRole}
                             avatarUrl={profile.avatar_url}

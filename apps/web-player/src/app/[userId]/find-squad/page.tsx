@@ -85,17 +85,12 @@ export default function FindSquadPage() {
             setTeams(data || []);
 
             // Fetch my membership and requests
-            console.log("Fetching membership for userId:", userId);
             const [membershipRes, requestsRes] = await Promise.all([
                 supabase.from('team_members').select('team_id').eq('user_id', userId),
                 supabase.from('team_requests').select('team_id, status').eq('user_id', userId)
             ]);
 
-            console.log("Membership result:", membershipRes);
-            console.log("Requests result:", requestsRes);
-
             if (membershipRes.data && membershipRes.data.length > 0) {
-                console.log("Setting myTeamId:", membershipRes.data[0].team_id);
                 setMyTeamId(membershipRes.data[0].team_id);
             }
 
@@ -177,7 +172,6 @@ export default function FindSquadPage() {
 
     const handleJoinTeam = async (teamId: string) => {
         const userIdStr = Array.isArray(userId) ? userId[0] : userId;
-        console.log("handleJoinTeam called for teamId:", teamId, "userId:", userIdStr);
 
         if (!userIdStr) {
             alert("User ID not found. Please try logging in again.");
@@ -186,7 +180,8 @@ export default function FindSquadPage() {
 
         setActionLoading(teamId);
         try {
-            const { error } = await supabase
+            // 1. Create the team request
+            const { error: requestError } = await supabase
                 .from('team_requests')
                 .insert({
                     team_id: teamId,
@@ -194,15 +189,39 @@ export default function FindSquadPage() {
                     status: 'pending'
                 });
 
-            if (error) {
-                console.error("Supabase error joining team:", error);
-                throw error;
+            if (requestError) throw requestError;
+
+            // 2. Fetch team details (captain) to notify
+            const { data: teamData } = await supabase
+                .from('teams')
+                .select('name, creator_id')
+                .eq('id', teamId)
+                .single();
+
+            if (teamData && teamData.creator_id) {
+                // 3. Fetch requester name
+                const { data: userData } = await supabase
+                    .from('profiles')
+                    .select('first_name, last_name')
+                    .eq('id', userIdStr)
+                    .single();
+
+                const requesterName = userData ? `${userData.first_name} ${userData.last_name}` : 'A player';
+
+                // 4. Create notification for the captain
+                await supabase
+                    .from('notifications')
+                    .insert({
+                        user_id: teamData.creator_id,
+                        type: 'team_request',
+                        title: 'New Team Request',
+                        message: `${requesterName} wants to join your team ${teamData.name}.`,
+                        link: `/${teamData.creator_id}/myteam`
+                    });
             }
 
-            console.log("Join request successful");
             setMyRequests(prev => ({ ...prev, [teamId]: 'pending' }));
         } catch (error: any) {
-            console.error("Catch error joining team:", error);
             alert("Error joining team: " + error.message);
         } finally {
             setActionLoading(null);
@@ -426,12 +445,8 @@ export default function FindSquadPage() {
                                             size="sm"
                                             className="join-btn"
                                             onClick={() => {
-                                                console.log("Join Team button clicked for team:", team.name, team.id);
-                                                console.log("Current state - myTeamId:", myTeamId, "myRequests:", myRequests[team.id]);
                                                 if (!myTeamId && !myRequests[team.id]) {
                                                     handleJoinTeam(team.id);
-                                                } else {
-                                                    console.log("Join condition NOT met. myTeamId exists or request already pending.");
                                                 }
                                             }}
                                             disabled={actionLoading === team.id || !!myTeamId || !!myRequests[team.id]}
