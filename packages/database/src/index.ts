@@ -58,3 +58,11 @@ export type Match = {
     team_name?: string;
     created_at: string;
 };
+
+export type TeamRequest = {
+    id: string;
+    team_id: string;
+    user_id: string;
+    status: 'pending' | 'accepted' | 'rejected';
+    created_at: string;
+};

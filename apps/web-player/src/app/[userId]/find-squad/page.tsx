@@ -27,6 +27,8 @@ export default function FindSquadPage() {
     const [friends, setFriends] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [myTeamId, setMyTeamId] = useState<string | null>(null);
+    const [myRequests, setMyRequests] = useState<Record<string, string>>({});
 
     const [friendStatuses, setFriendStatuses] = useState<Record<string, string>>({});
 
@@ -81,6 +83,29 @@ export default function FindSquadPage() {
 
             if (error) throw error;
             setTeams(data || []);
+
+            // Fetch my membership and requests
+            console.log("Fetching membership for userId:", userId);
+            const [membershipRes, requestsRes] = await Promise.all([
+                supabase.from('team_members').select('team_id').eq('user_id', userId),
+                supabase.from('team_requests').select('team_id, status').eq('user_id', userId)
+            ]);
+
+            console.log("Membership result:", membershipRes);
+            console.log("Requests result:", requestsRes);
+
+            if (membershipRes.data && membershipRes.data.length > 0) {
+                console.log("Setting myTeamId:", membershipRes.data[0].team_id);
+                setMyTeamId(membershipRes.data[0].team_id);
+            }
+
+            if (requestsRes.data) {
+                const reqs: Record<string, string> = {};
+                requestsRes.data.forEach(r => {
+                    reqs[r.team_id] = r.status;
+                });
+                setMyRequests(reqs);
+            }
         } catch (error) {
             console.error("Error fetching teams:", error);
         }
@@ -145,6 +170,40 @@ export default function FindSquadPage() {
             });
         } catch (error: any) {
             alert("Error removing friend: " + error.message);
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleJoinTeam = async (teamId: string) => {
+        const userIdStr = Array.isArray(userId) ? userId[0] : userId;
+        console.log("handleJoinTeam called for teamId:", teamId, "userId:", userIdStr);
+
+        if (!userIdStr) {
+            alert("User ID not found. Please try logging in again.");
+            return;
+        }
+
+        setActionLoading(teamId);
+        try {
+            const { error } = await supabase
+                .from('team_requests')
+                .insert({
+                    team_id: teamId,
+                    user_id: userIdStr,
+                    status: 'pending'
+                });
+
+            if (error) {
+                console.error("Supabase error joining team:", error);
+                throw error;
+            }
+
+            console.log("Join request successful");
+            setMyRequests(prev => ({ ...prev, [teamId]: 'pending' }));
+        } catch (error: any) {
+            console.error("Catch error joining team:", error);
+            alert("Error joining team: " + error.message);
         } finally {
             setActionLoading(null);
         }
@@ -362,8 +421,25 @@ export default function FindSquadPage() {
                                             <h3>{team.name}</h3>
                                             <p>EST. {new Date(team.created_at).getFullYear()}</p>
                                         </div>
-                                        <Button variant="primary" size="sm" className="join-btn">
-                                            Join Team
+                                        <Button
+                                            variant={myTeamId === team.id ? "secondary" : "primary"}
+                                            size="sm"
+                                            className="join-btn"
+                                            onClick={() => {
+                                                console.log("Join Team button clicked for team:", team.name, team.id);
+                                                console.log("Current state - myTeamId:", myTeamId, "myRequests:", myRequests[team.id]);
+                                                if (!myTeamId && !myRequests[team.id]) {
+                                                    handleJoinTeam(team.id);
+                                                } else {
+                                                    console.log("Join condition NOT met. myTeamId exists or request already pending.");
+                                                }
+                                            }}
+                                            disabled={actionLoading === team.id || !!myTeamId || !!myRequests[team.id]}
+                                        >
+                                            {actionLoading === team.id ? "..." :
+                                                myTeamId === team.id ? "Member" :
+                                                    myRequests[team.id] === 'pending' ? "Requested" :
+                                                        myRequests[team.id] === 'rejected' ? "Rejected" : "Join Team"}
                                         </Button>
                                     </div>
                                 </div>
@@ -910,24 +986,6 @@ export default function FindSquadPage() {
                     border-color: var(--primary);
                     color: #000;
                     box-shadow: 0 0 20px rgba(0, 158, 96, 0.3);
-                }
-
-                /* Team Card Styles */
-                .team-card-custom {
-                    position: relative;
-                    height: 220px;
-                    width: 320px;
-                    border-radius: 24px;
-                    overflow: hidden;
-                    background: rgba(255, 255, 255, 0.03);
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-                }
-
-                .team-card-custom:hover {
-                    transform: translateY(-8px);
-                    border-color: var(--primary);
-                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
                 }
 
                 /* Team Card Styles */

@@ -21,6 +21,7 @@ export default function MyTeamPage() {
     const [editName, setEditName] = useState("");
     const [editLogo, setEditLogo] = useState("");
     const [updating, setUpdating] = useState(false);
+    const [requests, setRequests] = useState<any[]>([]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -71,6 +72,17 @@ export default function MyTeamPage() {
                                 .filter((p: any) => p && !memberIds.includes(p.id))
                             );
                         }
+                    }
+
+                    // 3. Fetch join requests if captain
+                    if (membership.role === 'captain') {
+                        const { data: requestsData } = await supabase
+                            .from('team_requests')
+                            .select('id, user_id, status, profiles:user_id(first_name, last_name, avatar_url, position)')
+                            .eq('team_id', membership.team_id)
+                            .eq('status', 'pending');
+
+                        if (requestsData) setRequests(requestsData);
                     }
                 }
             } catch (error) {
@@ -188,6 +200,61 @@ export default function MyTeamPage() {
             console.error("Error updating team:", error);
         } finally {
             setUpdating(false);
+        }
+    };
+
+    const handleAcceptRequest = async (requestId: string, requestUserId: string) => {
+        try {
+            // 1. Add to team_members
+            const { error: memberError } = await supabase
+                .from('team_members')
+                .insert({
+                    team_id: team.id,
+                    user_id: requestUserId,
+                    role: 'member'
+                });
+
+            if (memberError) throw memberError;
+
+            // 2. Update request status
+            const { error: requestError } = await supabase
+                .from('team_requests')
+                .update({ status: 'accepted' })
+                .eq('id', requestId);
+
+            if (requestError) throw requestError;
+
+            // 3. Update local state
+            const acceptedRequest = requests.find(r => r.id === requestId);
+            if (acceptedRequest) {
+                setMembers(prev => [...prev, {
+                    id: Math.random().toString(), // temporary id
+                    user_id: requestUserId,
+                    role: 'member',
+                    profiles: acceptedRequest.profiles
+                }]);
+            }
+            setRequests(prev => prev.filter(r => r.id !== requestId));
+
+            alert("Player accepted to team!");
+        } catch (error: any) {
+            alert("Error accepting request: " + error.message);
+        }
+    };
+
+    const handleRejectRequest = async (requestId: string) => {
+        try {
+            const { error } = await supabase
+                .from('team_requests')
+                .update({ status: 'rejected' })
+                .eq('id', requestId);
+
+            if (error) throw error;
+
+            setRequests(prev => prev.filter(r => r.id !== requestId));
+            alert("Request rejected.");
+        } catch (error: any) {
+            alert("Error rejecting request: " + error.message);
         }
     };
 
@@ -366,6 +433,38 @@ export default function MyTeamPage() {
                                 ))}
                             </div>
                         </section>
+
+                        {userRole === 'captain' && requests.length > 0 && (
+                            <section className="requests-section animate-in" style={{ animationDelay: '0.3s' }}>
+                                <div className="section-header">
+                                    <h3>Join Requests</h3>
+                                    <span className="count-badge request">{requests.length}</span>
+                                </div>
+                                <div className="requests-list">
+                                    {requests.map((request) => (
+                                        <div key={request.id} className="request-card">
+                                            <div className="request-user-info">
+                                                <div className="request-avatar">
+                                                    <img src={request.profiles?.avatar_url || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + request.profiles?.first_name} alt={request.profiles?.first_name} />
+                                                </div>
+                                                <div className="request-details">
+                                                    <span className="request-name">{request.profiles?.first_name} {request.profiles?.last_name}</span>
+                                                    <span className="request-position">{request.profiles?.position || "Player"}</span>
+                                                </div>
+                                            </div>
+                                            <div className="request-actions">
+                                                <button className="reject-btn" onClick={() => handleRejectRequest(request.id)}>
+                                                    Reject
+                                                </button>
+                                                <button className="accept-btn" onClick={() => handleAcceptRequest(request.id, request.user_id)}>
+                                                    Accept
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
 
                         <section className="invite-section animate-in" style={{ animationDelay: '0.4s' }}>
                             <div className="section-header">
@@ -1110,6 +1209,106 @@ export default function MyTeamPage() {
                     .stat-value {
                         font-size: 2rem;
                     }
+                }
+
+                .count-badge.request {
+                    background: #ff4d4d;
+                    color: #fff;
+                }
+
+                .requests-list {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1rem;
+                }
+
+                .request-card {
+                    background: rgba(255, 255, 255, 0.03);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                    border-radius: 20px;
+                    padding: 1.2rem;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    transition: all 0.3s ease;
+                }
+
+                .request-card:hover {
+                    background: rgba(255, 255, 255, 0.05);
+                    border-color: rgba(255, 255, 255, 0.1);
+                }
+
+                .request-user-info {
+                    display: flex;
+                    align-items: center;
+                    gap: 1rem;
+                }
+
+                .request-avatar {
+                    width: 48px;
+                    height: 48px;
+                    border-radius: 14px;
+                    overflow: hidden;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                }
+
+                .request-avatar img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+
+                .request-details {
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .request-name {
+                    font-weight: 700;
+                    color: #fff;
+                    font-size: 1rem;
+                }
+
+                .request-position {
+                    font-size: 0.8rem;
+                    color: rgba(255, 255, 255, 0.4);
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                }
+
+                .request-actions {
+                    display: flex;
+                    gap: 0.8rem;
+                }
+
+                .accept-btn, .reject-btn {
+                    padding: 0.6rem 1.2rem;
+                    border-radius: 12px;
+                    font-size: 0.85rem;
+                    font-weight: 700;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+
+                .accept-btn {
+                    background: var(--primary);
+                    border: none;
+                    color: #000;
+                }
+
+                .accept-btn:hover {
+                    transform: scale(1.05);
+                    box-shadow: 0 0 15px rgba(var(--primary-rgb), 0.3);
+                }
+
+                .reject-btn {
+                    background: rgba(255, 77, 77, 0.1);
+                    border: 1px solid rgba(255, 77, 77, 0.2);
+                    color: #ff4d4d;
+                }
+
+                .reject-btn:hover {
+                    background: rgba(255, 77, 77, 0.2);
                 }
             `}</style>
         </div>
