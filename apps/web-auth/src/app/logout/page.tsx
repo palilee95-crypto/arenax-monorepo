@@ -1,0 +1,71 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@arenax/database";
+
+export default function LogoutPage() {
+    const router = useRouter();
+
+    useEffect(() => {
+        const handleLogout = async () => {
+            try {
+                // 1. Sign out from Supabase
+                await supabase.auth.signOut();
+
+                // 2. Clear legacy cookies
+                const cookies = [
+                    'arenax_player_id',
+                    'arenax_venue_id',
+                    'arenax_admin_id',
+                    'sb-access-token',
+                    'sb-refresh-token'
+                ];
+
+                cookies.forEach(name => {
+                    document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+                });
+
+                // 3. Redirect to login page with a logout flag to prevent auto-redirect
+                window.location.href = "/?loggedout=true";
+            } catch (error) {
+                console.error("Logout error:", error);
+                window.location.href = "/";
+            }
+        };
+
+        handleLogout();
+    }, [router]);
+
+    return (
+        <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '100vh',
+            background: '#0a0a0c',
+            color: 'white',
+            fontFamily: 'system-ui, sans-serif'
+        }}>
+            <div style={{ textAlign: 'center' }}>
+                <h2 style={{ marginBottom: '1rem' }}>Logging you out...</h2>
+                <div className="loader"></div>
+            </div>
+            <style jsx>{`
+                .loader {
+                    border: 3px solid rgba(255, 255, 255, 0.1);
+                    border-top: 3px solid #00ff88;
+                    border-radius: 50%;
+                    width: 30px;
+                    height: 30px;
+                    animation: spin 1s linear infinite;
+                    margin: 0 auto;
+                }
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            `}</style>
+        </div>
+    );
+}

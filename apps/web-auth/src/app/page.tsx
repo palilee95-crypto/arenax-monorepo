@@ -14,6 +14,13 @@ export default function LoginPage() {
   // Auto-redirect if already logged in
   useEffect(() => {
     const checkSession = async () => {
+      // Don't auto-redirect if we just logged out
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('loggedout') === 'true') {
+        console.log("User just logged out, skipping auto-redirect");
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         console.log("User already logged in, redirecting...");
