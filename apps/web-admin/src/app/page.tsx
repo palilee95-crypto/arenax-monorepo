@@ -9,5 +9,6 @@ export default async function RootPage() {
         redirect(`/${userId}`);
     }
 
-    redirect("http://localhost:3000");
+    const authUrl = process.env.NEXT_PUBLIC_AUTH_URL || "http://localhost:3000";
+    redirect(authUrl);
 }
