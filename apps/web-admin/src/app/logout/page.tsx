@@ -26,7 +26,7 @@ export default function LogoutPage() {
                         document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax${domainAttr}`;
                     }
                 });
-                const authUrl = process.env.NEXT_PUBLIC_AUTH_URL || 'https://arenax.myposhub.my';
+                const authUrl = process.env.NEXT_PUBLIC_AUTH_URL || 'https://arenax.my';
                 window.location.href = `${authUrl}/logout`;
             } catch (error) {
                 console.error("Logout error:", error);

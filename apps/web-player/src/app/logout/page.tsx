@@ -36,7 +36,7 @@ export default function LogoutPage() {
                 });
 
                 // 3. Redirect to central auth logout page to ensure session is cleared there too
-                const authUrl = process.env.NEXT_PUBLIC_AUTH_URL || 'https://arenax.myposhub.my';
+                const authUrl = process.env.NEXT_PUBLIC_AUTH_URL || 'https://arenax.my';
                 window.location.href = `${authUrl}/logout`;
             } catch (error) {
                 console.error("Logout error:", error);
