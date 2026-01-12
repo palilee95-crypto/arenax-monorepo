@@ -134,6 +134,12 @@ export default function LoginPage() {
 
       if (!authData.user) throw new Error("Login failed");
 
+      console.log("[Auth] Login successful for user:", authData.user.id);
+      console.log("[Auth] Session established:", authData.session ? "YES" : "NO");
+      if (authData.session) {
+        console.log("[Auth] Session expires at:", new Date(authData.session.expires_at! * 1000).toLocaleString());
+      }
+
       // 2. Fetch user profile to get role
       const { data: profile, error: profileError } = await supabase
         .from('profiles')

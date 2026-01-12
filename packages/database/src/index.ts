@@ -29,19 +29,28 @@ if (isBrowser) {
 const cookieStorage = {
     getItem: (key: string) => {
         if (!isBrowser) return null;
-        const cookie = document.cookie.split('; ').find((row) => row.startsWith(`${key}=`));
-        if (!cookie) return null;
-        return decodeURIComponent(cookie.split('=')[1]);
+        const cookie = document.cookie.split('; ').find((row) => row.trim().startsWith(`${key}=`));
+        if (!cookie) {
+            console.log(`[database] CookieStorage: getItem(${key}) -> NOT FOUND`);
+            return null;
+        }
+        const value = decodeURIComponent(cookie.split('=')[1]);
+        console.log(`[database] CookieStorage: getItem(${key}) -> FOUND (length: ${value.length})`);
+        return value;
     },
     setItem: (key: string, value: string) => {
         if (!isBrowser) return;
         const domainAttr = domain ? `; domain=${domain}` : '';
-        document.cookie = `${key}=${encodeURIComponent(value)}; path=/; max-age=31536000${domainAttr}; SameSite=Lax; Secure`;
+        const secureAttr = window.location.protocol === 'https:' ? '; Secure' : '';
+        const cookieString = `${key}=${encodeURIComponent(value)}; path=/; max-age=31536000${domainAttr}; SameSite=Lax${secureAttr}`;
+        console.log(`[database] CookieStorage: setItem(${key}) on domain: ${domain || 'default'}`);
+        document.cookie = cookieString;
     },
     removeItem: (key: string) => {
         if (!isBrowser) return;
         const domainAttr = domain ? `; domain=${domain}` : '';
-        document.cookie = `${key}=; path=/; max-age=0${domainAttr}; SameSite=Lax; Secure`;
+        console.log(`[database] CookieStorage: removeItem(${key})`);
+        document.cookie = `${key}=; path=/; max-age=0${domainAttr}; SameSite=Lax`;
     }
 };
 
