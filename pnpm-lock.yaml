@@ -20,6 +20,9 @@ importers:
       '@arenax/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@supabase/supabase-js':
+        specifier: ^2
+        version: 2.89.0
       next:
         specifier: 15.1.11
         version: 15.1.11(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
