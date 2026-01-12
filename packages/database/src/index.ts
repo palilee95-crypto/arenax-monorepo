@@ -6,14 +6,23 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-ke
 
 const isBrowser = typeof window !== 'undefined';
 const hostname = isBrowser ? window.location.hostname : '';
-const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-const domain = (isBrowser && !isLocalhost && hostname.includes('.'))
-    ? `.${hostname.split('.').slice(-2).join('.')}`
-    : undefined;
+const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
 
-console.log('[database] Initializing Supabase - URL:', supabaseUrl?.substring(0, 40) + '...');
+// Improved domain calculation for cross-subdomain auth
+let domain = undefined;
+if (isBrowser && !isLocalhost) {
+    const parts = hostname.split('.');
+    if (parts.length >= 2) {
+        domain = `.${parts.slice(-2).join('.')}`;
+    }
+}
+
+console.log('[database] Initializing Supabase');
+console.log('[database] URL:', supabaseUrl?.substring(0, 40) + '...');
 if (isBrowser) {
-    console.log('[database] Browser detected, domain for cookies:', domain || 'default');
+    console.log('[database] Hostname:', hostname);
+    console.log('[database] Domain for cookies:', domain || 'default (current hostname)');
+    console.log('[database] Protocol:', window.location.protocol);
 }
 
 export const supabase = createClient(supabaseUrl, supabaseKey, {
