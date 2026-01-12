@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@arenax/database";
 import { Card } from "@arenax/ui";
 
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [status, setStatus] = useState("Verifying your email...");
@@ -88,5 +88,13 @@ export default function AuthCallbackPage() {
                 </div>
             </Card>
         </div>
+    );
+}
+
+export default function AuthCallbackPage() {
+    return (
+        <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#0a0a0c', color: 'white' }}>Loading...</div>}>
+            <AuthCallbackContent />
+        </Suspense>
     );
 }
