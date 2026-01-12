@@ -11,9 +11,20 @@ export default function LogoutPage() {
         const handleLogout = async () => {
             try {
                 await supabase.auth.signOut();
-                const cookies = ['arenax_venue_id'];
-                cookies.forEach(name => {
+                const cookiesToClear = ['arenax_venue_id'];
+
+                // Get domain for cross-subdomain cookies
+                const hostname = window.location.hostname;
+                const domain = hostname.includes('.') ? `.${hostname.split('.').slice(-2).join('.')}` : '';
+                const domainAttr = domain ? `; domain=${domain}` : '';
+
+                cookiesToClear.forEach(name => {
+                    // Clear on current path/domain
                     document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+                    // Clear on wildcard domain
+                    if (domainAttr) {
+                        document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax${domainAttr}`;
+                    }
                 });
                 const authUrl = process.env.NEXT_PUBLIC_AUTH_URL || 'https://arenax.myposhub.my';
                 window.location.href = `${authUrl}/logout`;

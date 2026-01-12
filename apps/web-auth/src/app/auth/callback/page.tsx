@@ -45,7 +45,13 @@ function AuthCallbackContent() {
                         const cookieName = role === 'player' ? 'arenax_player_id' :
                             role === 'venue-owner' ? 'arenax_venue_id' :
                                 'arenax_admin_id';
-                        document.cookie = `${cookieName}=${data.user.id}; path=/; max-age=86400; SameSite=Lax`;
+
+                        // Get domain for cross-subdomain cookies
+                        const hostname = window.location.hostname;
+                        const domain = hostname.includes('.') ? `.${hostname.split('.').slice(-2).join('.')}` : '';
+                        const domainAttr = domain ? `; domain=${domain}` : '';
+
+                        document.cookie = `${cookieName}=${data.user.id}; path=/; max-age=86400${domainAttr}; SameSite=Lax`;
 
                         // Redirect based on role
                         const roleRedirects: Record<string, string> = {
