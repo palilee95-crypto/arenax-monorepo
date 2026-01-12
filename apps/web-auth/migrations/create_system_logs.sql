@@ -23,6 +23,12 @@ USING (
     )
 );
 
+-- Allow anyone to insert logs (for frontend error reporting)
+CREATE POLICY "Anyone can insert system logs"
+ON public.system_logs
+FOR INSERT
+WITH CHECK (true);
+
 -- Insert mock data
 INSERT INTO public.system_logs (level, message, source, details) VALUES
 ('info', 'System startup completed successfully.', 'System', '{"version": "1.0.0"}'),

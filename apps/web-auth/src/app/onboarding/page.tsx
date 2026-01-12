@@ -66,7 +66,7 @@ function OnboardingContent() {
         setError(null);
 
         try {
-            // 1. Sign up with Supabase Auth
+            // 1. Sign up with Supabase Auth - passing ALL metadata
             console.log("Attempting Supabase SignUp with:", email);
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: email?.trim(),
@@ -75,7 +75,21 @@ function OnboardingContent() {
                     data: {
                         first_name: firstName?.trim(),
                         last_name: lastName?.trim(),
-                        role: role
+                        role: role,
+                        nationality: nationality?.trim(),
+                        state: state?.trim() || null,
+                        district: district?.trim() || null,
+                        phone_number: phone?.trim(),
+                        date_of_birth: dob,
+                        preferred_foot: preferredFoot,
+                        position: position,
+                        skill_level: skillLevel,
+                        // Venue specific
+                        venue_name: role === 'venue-owner' ? venueName : null,
+                        venue_address: role === 'venue-owner' ? venueAddress : null,
+                        venue_contact: role === 'venue-owner' ? venueContact : null,
+                        total_courts: role === 'venue-owner' ? parseInt(venueCourts) : null,
+                        facilities: role === 'venue-owner' ? Array.from((e.target as any).querySelectorAll('input[type="checkbox"]:checked')).map((cb: any) => cb.parentElement.textContent.trim()) : []
                     },
                     emailRedirectTo: `${window.location.origin}/auth/callback`
                 }
@@ -85,7 +99,7 @@ function OnboardingContent() {
 
             if (authError) {
                 console.error("SignUp Error:", authError);
-                // Log signup error
+                // Log signup error - this will now work even if unauthenticated due to updated RLS
                 await supabase.from('system_logs').insert({
                     level: 'error',
                     message: `Signup failed for ${email}`,
@@ -99,130 +113,37 @@ function OnboardingContent() {
 
             const userId = authData.user.id;
 
-            // 2. Insert into profiles table
-            if (role === "player") {
-                const { error: insertError } = await supabase
-                    .from('profiles')
-                    .upsert([
-                        {
-                            id: userId,
-                            first_name: firstName?.trim(),
-                            last_name: lastName?.trim(),
-                            email: email?.trim(),
-                            role: role,
-                            nationality: nationality?.trim(),
-                            state: state?.trim() || null,
-                            district: district?.trim() || null,
-                            date_of_birth: dob,
-                            phone_number: phone?.trim(),
-                            preferred_foot: preferredFoot,
-                            position: position,
-                            skill_level: skillLevel,
-                        }
-                    ]);
+            // Log success
+            await supabase.from('system_logs').insert({
+                level: 'info',
+                message: `New user signed up: ${email}`,
+                source: 'AuthService',
+                details: { userId, role }
+            });
 
-                if (insertError) {
-                    // Log profile insert error
-                    await supabase.from('system_logs').insert({
-                        level: 'error',
-                        message: `Profile creation failed for ${email}`,
-                        source: 'AuthService',
-                        details: { error: insertError.message, userId, role }
-                    });
-                    throw insertError;
-                }
+            // Get domain for cross-subdomain cookies
+            const hostname = window.location.hostname;
+            const domain = hostname.includes('.') ? `.${hostname.split('.').slice(-2).join('.')}` : '';
+            const domainAttr = domain ? `; domain=${domain}` : '';
 
-                // Log success
-                await supabase.from('system_logs').insert({
-                    level: 'info',
-                    message: `New user signed up: ${email}`,
-                    source: 'AuthService',
-                    details: { userId, role }
-                });
+            // Set cookie for session persistence (legacy support)
+            const cookieName = role === 'player' ? 'arenax_player_id' : 'arenax_venue_id';
+            document.cookie = `${cookieName}=${userId}; path=/; max-age=86400${domainAttr}; SameSite=Lax`;
 
-                // Get domain for cross-subdomain cookies
-                const hostname = window.location.hostname;
-                const domain = hostname.includes('.') ? `.${hostname.split('.').slice(-2).join('.')}` : '';
-                const domainAttr = domain ? `; domain=${domain}` : '';
-
-                // Set cookie for session persistence (legacy support)
-                document.cookie = `arenax_player_id=${userId}; path=/; max-age=86400${domainAttr}; SameSite=Lax`;
-
-                // Check if email confirmation is required
-                if (authData.user && !authData.session) {
-                    alert("Registration successful! Please check your email to verify your account.");
-                    window.location.href = '/'; // Redirect to login
-                    return;
-                }
-
-                window.location.href = `${process.env.NEXT_PUBLIC_PLAYER_URL || 'http://localhost:3001'}/${userId}`;
-            } else if (role === "venue-owner") {
-                // Save profile first
-                const { error: profileError } = await supabase
-                    .from('profiles')
-                    .upsert([{
-                        id: userId,
-                        first_name: firstName?.trim(),
-                        last_name: lastName?.trim(),
-                        email: email?.trim(),
-                        role: role,
-                        nationality: nationality?.trim(),
-                        state: state?.trim() || null,
-                        district: district?.trim() || null,
-                    }]);
-
-                if (profileError) throw profileError;
-
-                // Save venue details
-                const { error: venueError } = await supabase
-                    .from('venues')
-                    .insert([
-                        {
-                            owner_id: userId,
-                            name: venueName,
-                            address: venueAddress,
-                            contact_number: venueContact,
-                            total_courts: parseInt(venueCourts),
-                            facilities: Array.from((e.target as any).querySelectorAll('input[type="checkbox"]:checked')).map((cb: any) => cb.parentElement.textContent.trim())
-                        }
-                    ]);
-
-                if (venueError) {
-                    // Log venue insert error
-                    await supabase.from('system_logs').insert({
-                        level: 'error',
-                        message: `Venue creation failed for ${email}`,
-                        source: 'AuthService',
-                        details: { error: venueError.message, userId }
-                    });
-                    throw venueError;
-                }
-
-                // Log success
-                await supabase.from('system_logs').insert({
-                    level: 'info',
-                    message: `New venue owner signed up: ${email}`,
-                    source: 'AuthService',
-                    details: { userId, role }
-                });
-
-                // Get domain for cross-subdomain cookies
-                const hostname = window.location.hostname;
-                const domain = hostname.includes('.') ? `.${hostname.split('.').slice(-2).join('.')}` : '';
-                const domainAttr = domain ? `; domain=${domain}` : '';
-
-                // Set cookie for session persistence
-                const cookieName = 'arenax_venue_id';
-                document.cookie = `${cookieName}=${userId}; path=/; max-age=86400${domainAttr}; SameSite=Lax`;
-
-                if (authData.user && !authData.session) {
-                    alert("Registration successful! Please check your email to verify your account.");
-                    window.location.href = '/';
-                    return;
-                }
-
-                window.location.href = `${process.env.NEXT_PUBLIC_VENUE_URL || 'http://localhost:3002'}/${userId}`;
+            // Check if email confirmation is required
+            if (authData.user && !authData.session) {
+                alert("Registration successful! Please check your email to verify your account.");
+                window.location.href = '/'; // Redirect to login
+                return;
             }
+
+            // If already logged in (e.g. email confirmation disabled), redirect to dashboard
+            const dashboardUrl = role === 'player'
+                ? (process.env.NEXT_PUBLIC_PLAYER_URL || 'http://localhost:3001')
+                : (process.env.NEXT_PUBLIC_VENUE_URL || 'http://localhost:3002');
+
+            window.location.href = `${dashboardUrl}/${userId}`;
+
         } catch (err: any) {
             console.error("Error saving profile:", err);
             setError(err.message || "An error occurred while saving your profile. Please try again.");
