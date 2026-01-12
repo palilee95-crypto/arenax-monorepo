@@ -4,9 +4,33 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
 
-console.log('[database] Initializing Supabase - URL:', supabaseUrl?.substring(0, 40) + '...');
+const isBrowser = typeof window !== 'undefined';
+const hostname = isBrowser ? window.location.hostname : '';
+const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+const domain = (isBrowser && !isLocalhost && hostname.includes('.'))
+    ? `.${hostname.split('.').slice(-2).join('.')}`
+    : undefined;
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+console.log('[database] Initializing Supabase - URL:', supabaseUrl?.substring(0, 40) + '...');
+if (isBrowser) {
+    console.log('[database] Browser detected, domain for cookies:', domain || 'default');
+}
+
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storageKey: 'arenax-auth-token',
+        // @ts-ignore
+        cookieOptions: {
+            domain: domain,
+            path: '/',
+            sameSite: 'lax',
+            secure: isBrowser ? window.location.protocol === 'https:' : true,
+        }
+    }
+});
 
 export type Profile = {
     id: string;

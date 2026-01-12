@@ -4,6 +4,9 @@ import { supabase } from "@arenax/database";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { CreateMatchProvider } from "../../contexts/CreateMatchContext";
+import { unstable_noStore as noStore } from 'next/cache';
+
+export const dynamic = 'force-dynamic';
 
 export default async function UserLayout({
     children,
@@ -12,6 +15,7 @@ export default async function UserLayout({
     children: React.ReactNode;
     params: Promise<{ userId: string }>;
 }) {
+    noStore();
     const { userId } = await params;
     const cookieStore = await cookies();
     const allCookies = cookieStore.getAll().map((c: { name: string, value: string }) => `${c.name}=${c.value.substring(0, 5)}...`).join(', ');
@@ -22,17 +26,21 @@ export default async function UserLayout({
     console.log("[WEB-PLAYER] Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 40));
 
     try {
-        console.log("[WEB-PLAYER] Attempting to fetch profile...");
+        console.log("[WEB-PLAYER] Attempting to fetch profile for userId:", userId);
         const { data: profile, error } = await supabase
             .from('profiles')
-            .select('first_name, last_name, role, skill_level, avatar_url')
+            .select('first_name, last_name, role, skill_level, avatar_url, hero_url')
             .eq('id', userId)
             .single();
 
         console.log("[WEB-PLAYER] Profile fetch result:", {
             hasProfile: !!profile,
             error: error ? error.message : null,
-            profileData: profile
+            profileData: profile ? {
+                ...profile,
+                avatar_url: profile.avatar_url ? `${profile.avatar_url.substring(0, 20)}... (length: ${profile.avatar_url.length})` : null,
+                hero_url: profile.hero_url ? `${profile.hero_url.substring(0, 20)}... (length: ${profile.hero_url.length})` : null
+            } : null
         });
 
         if (!profile) {

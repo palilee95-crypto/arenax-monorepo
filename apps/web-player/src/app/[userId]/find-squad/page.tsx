@@ -61,7 +61,16 @@ export default function FindSquadPage() {
                 .neq('id', userId)
                 .order('first_name', { ascending: true });
 
-            if (error) throw error;
+            if (error) {
+                console.error("[FindSquad] Error fetching players:", error);
+                throw error;
+            }
+
+            console.log("[FindSquad] Players fetched:", data?.length, "Sample player image lengths:", data?.slice(0, 3).map((p: any) => ({
+                id: p.id,
+                avatar_len: p.avatar_url?.length || 0,
+                hero_len: p.hero_url?.length || 0
+            })));
 
             const playersWithScore = (data || []).map((p: any) => ({
                 ...p,
@@ -254,14 +263,14 @@ export default function FindSquadPage() {
                     </button>
 
                     <div className="modal-hero-bg">
-                        <img src={player.avatar_url || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1000"} alt="Background" className="bg-image" />
+                        <img src={player.hero_url || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1000"} alt="Background" className="bg-image" />
                         <div className="bg-overlay"></div>
                     </div>
 
                     <div className="modal-body-content">
                         <div className="player-avatar-box">
                             <div className="avatar-container">
-                                <img src={player.avatar_url || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1000"} alt={player.first_name} />
+                                <img src={player.avatar_url || "https://ui-avatars.com/api/?name=" + player.first_name} alt={player.first_name} />
                             </div>
                             <div className="club-logo-badge">
                                 <img src="https://upload.wikimedia.org/wikipedia/en/thumb/5/56/Real_Madrid_CF.svg/1200px-Real_Madrid_CF.svg.png" alt="Club" />

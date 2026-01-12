@@ -18,11 +18,22 @@ export default function PlayerDashboard() {
       try {
         if (userId) {
           // 1. Fetch Profile
-          const { data: profileData } = await supabase
+          console.log("[Dashboard] Fetching profile for userId:", userId);
+          const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', userId)
             .single();
+
+          if (profileError) {
+            console.error("[Dashboard] Profile fetch error:", profileError);
+          } else {
+            console.log("[Dashboard] Profile fetch result:", {
+              hasProfile: !!profileData,
+              avatar_url_len: profileData?.avatar_url?.length || 0,
+              hero_url_len: profileData?.hero_url?.length || 0
+            });
+          }
 
           setProfile(profileData);
 

@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS public.system_logs (
 ALTER TABLE public.system_logs ENABLE ROW LEVEL SECURITY;
 
 -- Allow admins to read logs
+DROP POLICY IF EXISTS "Admins can read system logs" ON public.system_logs;
 CREATE POLICY "Admins can read system logs" 
 ON public.system_logs 
 FOR SELECT 
@@ -24,6 +25,7 @@ USING (
 );
 
 -- Allow anyone to insert logs (for frontend error reporting)
+DROP POLICY IF EXISTS "Anyone can insert system logs" ON public.system_logs;
 CREATE POLICY "Anyone can insert system logs"
 ON public.system_logs
 FOR INSERT

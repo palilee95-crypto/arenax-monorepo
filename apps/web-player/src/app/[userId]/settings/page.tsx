@@ -123,10 +123,19 @@ export default function SettingsPage() {
         e.preventDefault();
         setSaving(true);
         try {
-            console.log("[Settings] Attempting to save profile...");
+            console.log("[Settings] Attempting to save profile for userId:", userId);
+
+            // Verify session
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            if (userError) console.error("[Settings] Session error:", userError);
+            console.log("[Settings] Current auth.uid():", user?.id);
+
+            if (user && user.id !== userId) {
+                console.warn("[Settings] Warning: userId in URL does not match auth.uid()!");
+            }
 
             // Update profile in Supabase
-            const { error } = await supabase
+            const { data, error, count } = await supabase
                 .from('profiles')
                 .update({
                     first_name: profile.first_name,
@@ -141,12 +150,19 @@ export default function SettingsPage() {
                     skill_level: profile.skill_level,
                     avatar_url: profile.avatar_url,
                     hero_url: profile.hero_url
-                })
-                .eq('id', userId);
+                }, { count: 'exact' })
+                .eq('id', userId)
+                .select();
 
             if (error) {
                 console.error("[Settings] Update error:", error);
                 throw error;
+            }
+
+            console.log("[Settings] Update result:", { count, dataLength: data?.length });
+
+            if (!data || data.length === 0) {
+                throw new Error("No profile was updated. You might not have permission to update this profile.");
             }
 
             console.log("[Settings] Profile updated successfully!");

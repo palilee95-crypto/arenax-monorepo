@@ -66,11 +66,105 @@ function OnboardingContent() {
         setError(null);
 
         try {
+            // Check if user is already logged in
+            const { data: { session } } = await supabase.auth.getSession();
+
+            // Get password from form if it wasn't in URL
+            const formData = new FormData(e.target as HTMLFormElement);
+            const formPassword = formData.get("password") as string;
+            const finalPassword = password || formPassword;
+
+            if (session?.user) {
+                console.log("User already logged in, skipping signUp and inserting profile directly.");
+                const userId = session.user.id;
+
+                // 1. Insert Profile
+                const { error: profileError } = await supabase
+                    .from('profiles')
+                    .insert({
+                        id: userId,
+                        first_name: firstName?.trim(),
+                        last_name: lastName?.trim(),
+                        email: session.user.email,
+                        role: role,
+                        nationality: nationality?.trim(),
+                        state: state?.trim() || null,
+                        district: district?.trim() || null,
+                        phone_number: phone?.trim(),
+                        date_of_birth: dob,
+                        preferred_foot: preferredFoot,
+                        position: position,
+                        skill_level: skillLevel,
+                        status: 'pending' // Will be auto-verified if email is confirmed
+                    });
+
+                if (profileError) {
+                    // Ignore duplicate key error (if profile exists but we are just updating)
+                    if (profileError.code === '23505') {
+                        console.log("Profile already exists, attempting update...");
+                        await supabase
+                            .from('profiles')
+                            .update({
+                                first_name: firstName?.trim(),
+                                last_name: lastName?.trim(),
+                                nationality: nationality?.trim(),
+                                state: state?.trim() || null,
+                                district: district?.trim() || null,
+                                phone_number: phone?.trim(),
+                                date_of_birth: dob,
+                                preferred_foot: preferredFoot,
+                                position: position,
+                                skill_level: skillLevel
+                            })
+                            .eq('id', userId);
+                    } else {
+                        throw profileError;
+                    }
+                }
+
+                // 2. Insert Venue (if applicable)
+                if (role === 'venue-owner') {
+                    const { error: venueError } = await supabase
+                        .from('venues')
+                        .insert({
+                            owner_id: userId,
+                            name: venueName,
+                            address: venueAddress,
+                            contact_number: venueContact,
+                            total_courts: parseInt(venueCourts),
+                            facilities: Array.from((e.target as any).querySelectorAll('input[type="checkbox"]:checked')).map((cb: any) => cb.parentElement.textContent.trim())
+                        });
+
+                    if (venueError && venueError.code !== '23505') throw venueError;
+                }
+
+                // Log success
+                await supabase.from('system_logs').insert({
+                    level: 'info',
+                    message: `Profile completed for existing user: ${session.user.email}`,
+                    source: 'AuthService',
+                    details: { userId, role }
+                });
+
+                // Redirect
+                const dashboardUrl = role === 'player'
+                    ? (process.env.NEXT_PUBLIC_PLAYER_URL || 'http://localhost:3001')
+                    : (process.env.NEXT_PUBLIC_VENUE_URL || 'http://localhost:3002');
+                window.location.href = `${dashboardUrl}/${userId}`;
+                return;
+            }
+
+            // --- NEW USER FLOW ---
+
+            if (!finalPassword) {
+                throw new Error("Password is required for registration.");
+            }
+
             // 1. Sign up with Supabase Auth - passing ALL metadata
             console.log("Attempting Supabase SignUp with:", email);
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: email?.trim(),
-                password: password?.trim(),
+                password: finalPassword?.trim(),
                 options: {
                     data: {
                         first_name: firstName?.trim(),
@@ -137,7 +231,8 @@ function OnboardingContent() {
                 return;
             }
 
-            // If already logged in (e.g. email confirmation disabled), redirect to dashboard
+            // If already logged in (e.g. email confirmation bypassed), redirect to dashboard
+            console.log("User is logged in, redirecting to dashboard...");
             const dashboardUrl = role === 'player'
                 ? (process.env.NEXT_PUBLIC_PLAYER_URL || 'http://localhost:3001')
                 : (process.env.NEXT_PUBLIC_VENUE_URL || 'http://localhost:3002');
@@ -186,6 +281,18 @@ function OnboardingContent() {
                     )}
                     {role === "player" && (
                         <>
+                            {!password && (
+                                <div className="form-group">
+                                    <label>Create Password</label>
+                                    <input
+                                        type="password"
+                                        name="password"
+                                        placeholder="Create a secure password"
+                                        required
+                                        minLength={6}
+                                    />
+                                </div>
+                            )}
                             <div className="form-group">
                                 <label>Date of Birth</label>
                                 <input
@@ -316,6 +423,18 @@ function OnboardingContent() {
                         </>
                     ) : (
                         <>
+                            {!password && (
+                                <div className="form-group">
+                                    <label>Create Password</label>
+                                    <input
+                                        type="password"
+                                        name="password"
+                                        placeholder="Create a secure password"
+                                        required
+                                        minLength={6}
+                                    />
+                                </div>
+                            )}
                             <div className="form-group">
                                 <label>Venue Name</label>
                                 <input
