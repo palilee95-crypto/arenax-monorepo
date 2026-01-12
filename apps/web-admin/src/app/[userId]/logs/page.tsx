@@ -16,6 +16,7 @@ interface SystemLog {
 export default function LogsPage() {
     const [logs, setLogs] = useState<SystemLog[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [filter, setFilter] = useState<string>("all");
 
     useEffect(() => {
@@ -24,13 +25,25 @@ export default function LogsPage() {
 
     const fetchLogs = async () => {
         setLoading(true);
-        const { data, error } = await supabase
-            .from('system_logs')
-            .select('*')
-            .order('created_at', { ascending: false });
+        setError(null);
+        try {
+            const { data, error: fetchError } = await supabase
+                .from('system_logs')
+                .select('*')
+                .order('created_at', { ascending: false });
 
-        if (data) setLogs(data);
-        setLoading(false);
+            if (fetchError) {
+                console.error("Fetch error:", fetchError);
+                setError(fetchError.message);
+            } else {
+                setLogs(data || []);
+            }
+        } catch (err: any) {
+            console.error("Unexpected error:", err);
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const filteredLogs = filter === "all"
@@ -74,6 +87,11 @@ export default function LogsPage() {
             <Card variant="glass">
                 {loading ? (
                     <div className="loading-state">Loading logs...</div>
+                ) : error ? (
+                    <div className="error-state" style={{ color: '#ff4d4d', padding: '2rem', textAlign: 'center' }}>
+                        <p>Error fetching logs: {error}</p>
+                        <Button variant="outline" onClick={fetchLogs} style={{ marginTop: '1rem' }}>Try Again</Button>
+                    </div>
                 ) : filteredLogs.length === 0 ? (
                     <div className="empty-state">
                         <p>No logs available.</p>
