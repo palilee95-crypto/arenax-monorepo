@@ -47,7 +47,7 @@ export default function SettingsPage() {
         const fetchVenue = async () => {
             setLoading(true);
             try {
-                const { data, error } = await supabase
+                const { data } = await supabase
                     .from('venues')
                     .select('*')
                     .eq('owner_id', userId)
