@@ -234,6 +234,7 @@ export default function SettingsPage() {
                                         placeholder="Or paste image URL..."
                                         value={profile.avatar_url || ""}
                                         onChange={(e) => setProfile({ ...profile, avatar_url: e.target.value })}
+                                        style={{ display: 'none' }}
                                     />
                                 </div>
                             </div>
@@ -241,12 +242,13 @@ export default function SettingsPage() {
                                 <label>Hero Background</label>
                                 <div className="image-preview-wrapper hero">
                                     <img
-                                        src={profile.hero_url || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1000"}
+                                        src={profile.hero_url || ""}
                                         alt="Hero"
                                         className="hero-preview"
                                         onError={(e) => {
-                                            e.currentTarget.src = "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1000";
+                                            e.currentTarget.style.display = 'none';
                                         }}
+                                        style={{ display: !profile.hero_url ? 'none' : 'block' }}
                                     />
                                     <div className="upload-actions">
                                         <input
@@ -281,6 +283,7 @@ export default function SettingsPage() {
                                         placeholder="Or paste image URL..."
                                         value={profile.hero_url || ""}
                                         onChange={(e) => setProfile({ ...profile, hero_url: e.target.value })}
+                                        style={{ display: 'none' }}
                                     />
                                 </div>
                             </div>
