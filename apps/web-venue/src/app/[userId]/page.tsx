@@ -21,7 +21,7 @@ export default function VenueDashboard() {
     monthlyGrowth: 0,
     avgBookingValue: 0
   });
-  // const [loading, setLoading] = useState(true);
+
   const [recentBookings, setRecentBookings] = useState<any[]>([]);
   const [weeklyData, setWeeklyData] = useState<any[]>([]);
   const [courtData, setCourtData] = useState<any[]>([]);
@@ -44,7 +44,7 @@ export default function VenueDashboard() {
             const todayStr = today.toISOString().split('T')[0];
             const sevenDaysAgo = new Date(today);
             sevenDaysAgo.setDate(today.getDate() - 7);
-            // const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+
 
             // 2. Fetch ALL Confirmed Bookings
             const { data: bookingsData, error: bookingsError } = await supabase
