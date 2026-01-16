@@ -82,6 +82,7 @@ export type Profile = {
     avatar_url?: string;
     hero_url?: string;
     status: 'pending' | 'verified' | 'rejected';
+    fcm_token?: string;
     created_at: string;
 };
 

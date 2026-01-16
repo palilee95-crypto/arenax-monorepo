@@ -138,15 +138,15 @@ function OnboardingContent() {
                     if (venueError && venueError.code !== '23505') throw venueError;
                 }
 
-                // Log success
-                await supabase.from('system_logs').insert({
-                    level: 'info',
-                    message: `Profile completed for existing user: ${session.user.email}`,
-                    source: 'AuthService',
-                    details: { userId, role }
-                });
+                // Send push notification to admins
+                fetch('/api/notifications/venue-verification-request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, venueName })
+                }).catch(err => console.error("Error sending venue verification request notification:", err));
 
                 // Redirect
+
                 const dashboardUrl = role === 'player'
                     ? (process.env.NEXT_PUBLIC_PLAYER_URL || 'http://localhost:3001')
                     : (process.env.NEXT_PUBLIC_VENUE_URL || 'http://localhost:3002');

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { CreateMatchProvider } from "../../contexts/CreateMatchContext";
 import { unstable_noStore as noStore } from 'next/cache';
+import { NotificationHandler } from "../../components/NotificationHandler";
 
 export const dynamic = 'force-dynamic';
 
@@ -49,6 +50,20 @@ export default async function UserLayout({
             redirect(`${authUrl}/onboarding`);
         }
 
+        // Session validation: Ensure URL userId matches authenticated user
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            console.log("[WEB-PLAYER] ❌ No active session, redirecting to login");
+            const authUrl = process.env.NEXT_PUBLIC_AUTH_URL || 'http://localhost:3000';
+            redirect(`${authUrl}`);
+        }
+
+        if (user.id !== userId) {
+            console.log(`[WEB-PLAYER] ⚠️ Session mismatch! URL: ${userId}, Auth: ${user.id}. Redirecting to correct path.`);
+            redirect(`/${user.id}`);
+        }
+
         console.log("[WEB-PLAYER] ✅ Profile found for:", profile.first_name, profile.last_name);
 
         // Redirection guard
@@ -57,7 +72,7 @@ export default async function UserLayout({
                 'venue-owner': process.env.NEXT_PUBLIC_VENUE_URL || 'http://localhost:3002',
                 'admin': process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3003'
             };
-            redirect(`${roleRedirects[profile.role]}/${userId}` || (process.env.NEXT_PUBLIC_AUTH_URL || 'http://localhost:3000'));
+            redirect(`${roleRedirects[profile.role]}/${user.id}` || (process.env.NEXT_PUBLIC_AUTH_URL || 'http://localhost:3000'));
         }
 
         const userName = `${profile.first_name} ${profile.last_name}`;
@@ -65,6 +80,7 @@ export default async function UserLayout({
 
         return (
             <CreateMatchProvider>
+                <NotificationHandler userId={userId} />
                 <div className="app-layout">
                     <SidebarWrapper
                         userId={userId}

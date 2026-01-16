@@ -84,6 +84,14 @@ export default function VerificationPage() {
                 .eq('id', userId);
 
             if (error) throw error;
+
+            // Send push notification to the user
+            fetch('/api/notifications/venue-verified', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
+            }).catch(err => console.error("Error sending venue verified notification:", err));
+
         } catch (error) {
             console.error("Error verifying user:", error);
             alert("Failed to verify user. Please try again.");

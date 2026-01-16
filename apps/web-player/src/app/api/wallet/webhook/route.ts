@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@arenax/database';
+import { sendPushNotification } from '@/lib/notifications';
 
 export async function POST(request: Request) {
     try {
@@ -71,6 +72,19 @@ export async function POST(request: Request) {
             }
 
             console.log(`Successfully processed payment for transaction ${transactionId}. New balance: ${newBalance}`);
+
+            // 6. Send Notification to User
+            try {
+                const title = 'Top Up Successful! 💰';
+                const body = `Your wallet has been topped up with RM ${Number(amount).toFixed(2)}. Your new balance is RM ${newBalance.toFixed(2)}.`;
+                await sendPushNotification(transaction.user_id, title, body, {
+                    type: 'payment_success',
+                    amount: amount.toString(),
+                    newBalance: newBalance.toString()
+                });
+            } catch (notiError) {
+                console.error("Failed to send payment notification:", notiError);
+            }
         }
 
         return NextResponse.json({ message: 'Webhook processed successfully' });

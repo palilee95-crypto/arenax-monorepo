@@ -416,7 +416,22 @@ export const CreateMatchWizard = ({ userId, onClose }: { userId: string, onClose
 
             if (bookingError) throw bookingError;
 
+            // Send push notification to venue owner
+            fetch('/api/notifications/new-booking', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId,
+                    venueId: state.selectedVenue.id,
+                    matchId: matchData.id,
+                    date: state.date,
+                    startTime: state.startTime,
+                    endTime: state.endTime
+                })
+            }).catch(err => console.error("Error sending new booking notification:", err));
+
             alert("Match and Booking created successfully!");
+
             if (onClose) onClose();
             router.push(`/${userId}/matches`);
 

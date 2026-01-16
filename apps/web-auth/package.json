@@ -9,11 +9,12 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@arenax/database": "workspace:*",
+    "@arenax/ui": "workspace:*",
+    "firebase-admin": "^13.6.0",
     "next": "15.1.11",
     "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "@arenax/ui": "workspace:*",
-    "@arenax/database": "workspace:*"
+    "react-dom": "19.2.3"
   },
   "devDependencies": {
     "@types/node": "^20",

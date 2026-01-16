@@ -83,6 +83,17 @@ export default function FindMatchPage() {
 
             if (updateError) throw updateError;
 
+            // 4. Send Notification to Creator
+            try {
+                await fetch('/api/notifications/match-join', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ matchId, joinerId: userId })
+                });
+            } catch (notiError) {
+                console.error("Failed to send join notification:", notiError);
+            }
+
             alert("Successfully joined the match!");
             fetchMatches(); // Refresh list
         } catch (error: any) {

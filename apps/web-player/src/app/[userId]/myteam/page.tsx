@@ -22,29 +22,65 @@ export default function MyTeamPage() {
     const [editLogo, setEditLogo] = useState("");
     const [updating, setUpdating] = useState(false);
     const [requests, setRequests] = useState<any[]>([]);
+    const [activeUserId, setActiveUserId] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                // 1. Fetch user's team membership first (sequential dependency)
-                const { data: membership, error: membershipError } = await supabase
+                // Get actual authenticated user to avoid RLS mismatch
+                const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+                if (userError || !user) {
+                    console.error("[MyTeam] Auth error:", userError);
+                    setLoading(false);
+                    return;
+                }
+
+                const activeId = user.id;
+                setActiveUserId(activeId);
+                console.log("[MyTeam] Fetching data for activeUserId:", activeId, "URL userId:", userId);
+
+                // 1. Fetch user's team memberships
+                const { data: memberships, error: membershipError } = await supabase
                     .from('team_members')
-                    .select('team_id, role, teams(id, name, logo_url, created_at)')
-                    .eq('user_id', userId)
-                    .maybeSingle();
+                    .select('team_id, role')
+                    .eq('user_id', activeId);
 
                 if (membershipError) {
-                    console.error("Membership fetch error:", membershipError);
+                    console.error("[MyTeam] Membership fetch error:", membershipError);
                     throw membershipError;
                 }
 
-                if (membership) {
-                    const teamData = Array.isArray(membership.teams) ? membership.teams[0] : membership.teams;
-                    setTeam(teamData);
+                console.log("[MyTeam] Memberships found:", memberships);
+
+                if (memberships && memberships.length > 0) {
+                    const membership = memberships[0];
                     setUserRole(membership.role);
-                    setEditName(teamData?.name || "");
-                    setEditLogo(teamData?.logo_url || "");
+                    console.log("[MyTeam] Found membership, fetching team details for teamId:", membership.team_id);
+
+                    // 2. Fetch team details separately to isolate join/RLS issues
+                    const { data: teamData, error: teamError } = await supabase
+                        .from('teams')
+                        .select('*')
+                        .eq('id', membership.team_id)
+                        .single();
+
+                    if (teamError) {
+                        console.error("[MyTeam] Team fetch error:", teamError);
+                        // If we have membership but can't fetch team, it's almost certainly RLS
+                        alert("We found your team membership, but couldn't load the team details. This is likely an RLS policy issue. Please contact support.");
+                    }
+
+                    console.log("[MyTeam] Team data fetched:", teamData);
+
+                    if (teamData) {
+                        setTeam(teamData);
+                        setEditName(teamData.name || "");
+                        setEditLogo(teamData.logo_url || "");
+                    } else {
+                        console.error("[MyTeam] Membership exists but team data is null. teamId:", membership.team_id);
+                    }
 
                     // 2. Fetch members and friends in parallel
                     const [membersRes, friendsRes] = await Promise.all([
@@ -55,7 +91,7 @@ export default function MyTeamPage() {
                         supabase
                             .from('friends')
                             .select('friend_id, profiles:friend_id(id, first_name, last_name, avatar_url)')
-                            .eq('user_id', userId)
+                            .eq('user_id', activeUserId)
                             .eq('status', 'accepted')
                     ]);
 
@@ -95,9 +131,75 @@ export default function MyTeamPage() {
         fetchData();
     }, [userId]);
 
+    useEffect(() => {
+        if (!team?.id || userRole !== 'captain') return;
+
+        console.log("[MyTeam] 📡 Setting up real-time subscription for team_requests:", team.id);
+
+        const channel = supabase
+            .channel(`team_requests_${team.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'team_requests',
+                    filter: `team_id=eq.${team.id}`
+                },
+                async (payload: any) => {
+                    console.log("[MyTeam] 🔔 Real-time update received:", payload);
+
+                    if (payload.eventType === 'INSERT') {
+                        // Fetch the full profile for the new request
+                        const { data: newRequest } = await supabase
+                            .from('team_requests')
+                            .select('id, user_id, status, profiles:user_id(first_name, last_name, avatar_url, position)')
+                            .eq('id', payload.new.id)
+                            .single();
+
+                        if (newRequest) {
+                            setRequests(prev => {
+                                // Avoid duplicates
+                                if (prev.some(r => r.id === newRequest.id)) return prev;
+                                return [newRequest, ...prev];
+                            });
+                        }
+                    } else if (payload.eventType === 'DELETE' || (payload.eventType === 'UPDATE' && payload.new.status !== 'pending')) {
+                        const targetId = payload.eventType === 'DELETE' ? payload.old.id : payload.new.id;
+                        setRequests(prev => prev.filter(r => r.id !== targetId));
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [team?.id, userRole]);
+
     const handleCreateTeam = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!teamName) return;
+
+        // Get actual authenticated user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            alert("You must be logged in to create a team.");
+            return;
+        }
+        const activeUserId = user.id;
+
+        // Double check if user is already in a team
+        const { data: existingMember } = await supabase
+            .from('team_members')
+            .select('id')
+            .eq('user_id', activeUserId)
+            .maybeSingle();
+
+        if (existingMember) {
+            alert("You are already a member of a team. You must leave your current team before creating a new one.");
+            return;
+        }
 
         setCreating(true);
         try {
@@ -106,7 +208,7 @@ export default function MyTeamPage() {
                 .insert({
                     name: teamName,
                     logo_url: logoUrl,
-                    creator_id: userId
+                    creator_id: activeUserId
                 })
                 .select()
                 .single();
@@ -117,7 +219,7 @@ export default function MyTeamPage() {
                 .from('team_members')
                 .insert({
                     team_id: newTeam.id,
-                    user_id: userId,
+                    user_id: activeUserId,
                     role: 'captain'
                 });
 
@@ -128,6 +230,49 @@ export default function MyTeamPage() {
             alert("Error creating team: " + error.message);
         } finally {
             setCreating(false);
+        }
+    };
+
+    const handleLeaveTeam = async () => {
+        if (!window.confirm("Are you sure you want to leave this team?")) return;
+
+        // Get actual authenticated user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const activeUserId = user.id;
+
+        try {
+            const { error } = await supabase
+                .from('team_members')
+                .delete()
+                .eq('team_id', team.id)
+                .eq('user_id', activeUserId);
+
+            if (error) throw error;
+
+            alert("You have left the team.");
+            window.location.reload();
+        } catch (error: any) {
+            alert("Error leaving team: " + error.message);
+        }
+    };
+
+    const handleDisbandTeam = async () => {
+        if (!window.confirm("Are you sure you want to disband this team? This action cannot be undone and all members will be removed.")) return;
+
+        try {
+            // RLS should allow this if user is creator
+            const { error } = await supabase
+                .from('teams')
+                .delete()
+                .eq('id', team.id);
+
+            if (error) throw error;
+
+            alert("Team disbanded.");
+            window.location.reload();
+        } catch (error: any) {
+            alert("Error disbanding team: " + error.message);
         }
     };
 
@@ -390,16 +535,31 @@ export default function MyTeamPage() {
                                 <div className="team-text-info">
                                     <div className="team-title-row">
                                         <span className="team-tag">OFFICIAL TEAM</span>
-                                        {userRole === 'captain' && (
+                                        {userRole === 'captain' ? (
+                                            <div className="captain-actions">
+                                                <button
+                                                    className="edit-team-btn"
+                                                    onClick={() => setIsEditing(true)}
+                                                >
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                                    </svg>
+                                                    <span>Edit Team</span>
+                                                </button>
+                                                <button
+                                                    className="disband-team-btn"
+                                                    onClick={handleDisbandTeam}
+                                                >
+                                                    <span>Disband Team</span>
+                                                </button>
+                                            </div>
+                                        ) : (
                                             <button
-                                                className="edit-team-btn"
-                                                onClick={() => setIsEditing(true)}
+                                                className="leave-team-btn"
+                                                onClick={handleLeaveTeam}
                                             >
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                                </svg>
-                                                <span>Edit Team</span>
+                                                <span>Leave Team</span>
                                             </button>
                                         )}
                                     </div>
@@ -465,34 +625,40 @@ export default function MyTeamPage() {
                             </div>
                         </section>
 
-                        {userRole === 'captain' && requests.length > 0 && (
+                        {userRole === 'captain' && (
                             <section className="requests-section animate-in" style={{ animationDelay: '0.3s' }}>
                                 <div className="section-header">
                                     <h3>Join Requests</h3>
-                                    <span className="count-badge request">{requests.length}</span>
+                                    <span className={`count-badge ${requests.length > 0 ? 'request' : ''}`}>{requests.length}</span>
                                 </div>
                                 <div className="requests-list">
-                                    {requests.map((request) => (
-                                        <div key={request.id} className="request-card">
-                                            <div className="request-user-info">
-                                                <div className="request-avatar">
-                                                    <img src={request.profiles?.avatar_url || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + request.profiles?.first_name} alt={request.profiles?.first_name} />
+                                    {requests.length > 0 ? (
+                                        requests.map((request) => (
+                                            <div key={request.id} className="request-card">
+                                                <div className="request-user-info">
+                                                    <div className="request-avatar">
+                                                        <img src={request.profiles?.avatar_url || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + request.profiles?.first_name} alt={request.profiles?.first_name} />
+                                                    </div>
+                                                    <div className="request-details">
+                                                        <span className="request-name">{request.profiles?.first_name} {request.profiles?.last_name}</span>
+                                                        <span className="request-position">{request.profiles?.position || "Player"}</span>
+                                                    </div>
                                                 </div>
-                                                <div className="request-details">
-                                                    <span className="request-name">{request.profiles?.first_name} {request.profiles?.last_name}</span>
-                                                    <span className="request-position">{request.profiles?.position || "Player"}</span>
+                                                <div className="request-actions">
+                                                    <button className="reject-btn" onClick={() => handleRejectRequest(request.id, request.user_id)}>
+                                                        Reject
+                                                    </button>
+                                                    <button className="accept-btn" onClick={() => handleAcceptRequest(request.id, request.user_id)}>
+                                                        Accept
+                                                    </button>
                                                 </div>
                                             </div>
-                                            <div className="request-actions">
-                                                <button className="reject-btn" onClick={() => handleRejectRequest(request.id, request.user_id)}>
-                                                    Reject
-                                                </button>
-                                                <button className="accept-btn" onClick={() => handleAcceptRequest(request.id, request.user_id)}>
-                                                    Accept
-                                                </button>
-                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="empty-requests">
+                                            <p>No pending join requests.</p>
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
                             </section>
                         )}
@@ -524,7 +690,7 @@ export default function MyTeamPage() {
                                             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" /></svg>
                                         </div>
                                         <p>No friends available to invite.</p>
-                                        <Button variant="secondary" size="sm" onClick={() => router.push(`/${userId}/find-player`)}>Find Players</Button>
+                                        <Button variant="secondary" size="sm" onClick={() => router.push(`/${activeUserId || userId}/find-player`)}>Find Players</Button>
                                     </div>
                                 )}
                             </div>
@@ -836,6 +1002,30 @@ export default function MyTeamPage() {
                     letter-spacing: 0.02em;
                     text-transform: uppercase;
                     backdrop-filter: blur(10px);
+                }
+
+                .captain-actions {
+                    display: flex;
+                    gap: 1rem;
+                }
+
+                .disband-team-btn, .leave-team-btn {
+                    background: rgba(255, 77, 77, 0.1);
+                    border: 1px solid rgba(255, 77, 77, 0.2);
+                    color: #ff4d4d;
+                    padding: 0.6rem 1.2rem;
+                    border-radius: 14px;
+                    font-family: var(--font-inter), sans-serif;
+                    font-size: 0.85rem;
+                    font-weight: 700;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    text-transform: uppercase;
+                }
+
+                .disband-team-btn:hover, .leave-team-btn:hover {
+                    background: rgba(255, 77, 77, 0.2);
+                    transform: translateY(-2px);
                 }
 
                 .edit-team-btn:hover {
@@ -1258,6 +1448,19 @@ export default function MyTeamPage() {
                     display: flex;
                     flex-direction: column;
                     gap: 1rem;
+                    min-height: 100px;
+                }
+
+                .empty-requests {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    height: 100px;
+                    background: rgba(255, 255, 255, 0.01);
+                    border: 1px dashed rgba(255, 255, 255, 0.05);
+                    border-radius: 20px;
+                    color: rgba(255, 255, 255, 0.2);
+                    font-size: 0.9rem;
                 }
 
                 .request-card {
