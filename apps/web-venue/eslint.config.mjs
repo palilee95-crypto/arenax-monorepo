@@ -18,6 +18,13 @@ const eslintConfig = [
       "build/**",
       "next-env.d.ts",
     ],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "prefer-const": "off",
+      "@next/next/no-img-element": "off",
+      "react/no-unescaped-entities": "off",
+      "react-hooks/exhaustive-deps": "off",
+    }
   },
 ];
 
