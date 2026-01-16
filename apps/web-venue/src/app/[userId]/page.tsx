@@ -6,7 +6,7 @@ import { supabase } from "@arenax/database";
 import { useParams } from "next/navigation";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Cell, PieChart, Pie
+  BarChart, Bar, Cell
 } from 'recharts';
 
 export default function VenueDashboard() {
@@ -21,7 +21,7 @@ export default function VenueDashboard() {
     monthlyGrowth: 0,
     avgBookingValue: 0
   });
-  const [loading, setLoading] = useState(true);
+  // const [loading, setLoading] = useState(true);
   const [recentBookings, setRecentBookings] = useState<any[]>([]);
   const [weeklyData, setWeeklyData] = useState<any[]>([]);
   const [courtData, setCourtData] = useState<any[]>([]);
@@ -44,7 +44,7 @@ export default function VenueDashboard() {
             const todayStr = today.toISOString().split('T')[0];
             const sevenDaysAgo = new Date(today);
             sevenDaysAgo.setDate(today.getDate() - 7);
-            const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+            // const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
 
             // 2. Fetch ALL Confirmed Bookings
             const { data: bookingsData, error: bookingsError } = await supabase
@@ -124,7 +124,7 @@ export default function VenueDashboard() {
       } catch (error) {
         console.error("Error fetching venue data:", error);
       } finally {
-        setLoading(false);
+        // setLoading(false);
       }
     };
 
@@ -279,7 +279,7 @@ export default function VenueDashboard() {
                   contentStyle={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
                 />
                 <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                  {courtData.map((entry, index) => (
+                  {courtData.map((_entry, index) => (
                     <Cell key={`cell-${index}`} fill={index % 2 === 0 ? 'var(--primary)' : 'var(--secondary)'} />
                   ))}
                 </Bar>
