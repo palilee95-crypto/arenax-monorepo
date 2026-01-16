@@ -2,11 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "../../../../packages/ui/src/styles/globals.css";
 import "../../../../packages/ui/src/styles/components.css";
-import { TopBar } from "@arenax/ui";
-import { SidebarWrapper } from "../components/SidebarWrapper";
-import { cookies } from "next/headers";
-import { supabase } from "@arenax/database";
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -22,8 +17,6 @@ export const metadata: Metadata = {
   description: "Superadmin dashboard for Arenax MVP",
 };
 
-import { redirect } from "next/navigation";
-
 
 export default function RootLayout({
   children,
@@ -31,8 +24,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
         {children}
       </body>
     </html>

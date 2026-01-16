@@ -180,25 +180,30 @@ export default function FindSquadPage() {
     };
 
     const handleJoinTeam = async (teamId: string) => {
-        const userIdStr = Array.isArray(userId) ? userId[0] : userId;
-
-        if (!userIdStr) {
-            alert("User ID not found. Please try logging in again.");
-            return;
-        }
-
         setActionLoading(teamId);
         try {
+            // Get actual authenticated user to avoid RLS mismatch
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+            if (userError || !user) {
+                throw new Error("You must be logged in to join a team.");
+            }
+
+            const activeUserId = user.id;
+
             // 1. Create the team request
             const { error: requestError } = await supabase
                 .from('team_requests')
                 .insert({
                     team_id: teamId,
-                    user_id: userIdStr,
+                    user_id: activeUserId,
                     status: 'pending'
                 });
 
-            if (requestError) throw requestError;
+            if (requestError) {
+                console.error("[JoinTeam] RLS or DB Error:", requestError);
+                throw requestError;
+            }
 
             // 2. Fetch team details (captain) to notify
             const { data: teamData } = await supabase
@@ -212,7 +217,7 @@ export default function FindSquadPage() {
                 const { data: userData } = await supabase
                     .from('profiles')
                     .select('first_name, last_name')
-                    .eq('id', userIdStr)
+                    .eq('id', activeUserId)
                     .single();
 
                 const requesterName = userData ? `${userData.first_name} ${userData.last_name}` : 'A player';
@@ -449,22 +454,27 @@ export default function FindSquadPage() {
                                             <h3>{team.name}</h3>
                                             <p>EST. {new Date(team.created_at).getFullYear()}</p>
                                         </div>
-                                        <Button
-                                            variant={myTeamId === team.id ? "secondary" : "primary"}
-                                            size="sm"
-                                            className="join-btn"
-                                            onClick={() => {
-                                                if (!myTeamId && !myRequests[team.id]) {
-                                                    handleJoinTeam(team.id);
-                                                }
-                                            }}
-                                            disabled={actionLoading === team.id || !!myTeamId || !!myRequests[team.id]}
-                                        >
-                                            {actionLoading === team.id ? "..." :
-                                                myTeamId === team.id ? "Member" :
-                                                    myRequests[team.id] === 'pending' ? "Requested" :
-                                                        myRequests[team.id] === 'rejected' ? "Rejected" : "Join Team"}
-                                        </Button>
+                                        <div className="join-action-wrapper">
+                                            <Button
+                                                variant={myTeamId === team.id ? "secondary" : "primary"}
+                                                size="sm"
+                                                className="join-btn"
+                                                onClick={() => {
+                                                    if (!myTeamId && !myRequests[team.id]) {
+                                                        handleJoinTeam(team.id);
+                                                    }
+                                                }}
+                                                disabled={actionLoading === team.id || !!myTeamId || !!myRequests[team.id]}
+                                            >
+                                                {actionLoading === team.id ? "..." :
+                                                    myTeamId === team.id ? "Member" :
+                                                        myRequests[team.id] === 'pending' ? "Requested" :
+                                                            myRequests[team.id] === 'rejected' ? "Rejected" : "Join Team"}
+                                            </Button>
+                                            {myTeamId && myTeamId !== team.id && (
+                                                <span className="join-restriction">Already in a team</span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -640,6 +650,21 @@ export default function FindSquadPage() {
                     align-items: center;
                     border-bottom-left-radius: 32px;
                     border-bottom-right-radius: 32px;
+                }
+
+                .join-action-wrapper {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: flex-end;
+                    gap: 0.5rem;
+                }
+
+                .join-restriction {
+                    font-size: 0.65rem;
+                    color: rgba(255, 255, 255, 0.3);
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
                 }
                 .player-name-stack {
                     display: flex;

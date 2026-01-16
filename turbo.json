@@ -1,5 +1,8 @@
 {
     "$schema": "https://turbo.build/schema.json",
+    "globalDependencies": [
+        "**/.env.*local"
+    ],
     "tasks": {
         "build": {
             "dependsOn": [
@@ -8,12 +11,21 @@
             "outputs": [
                 ".next/**",
                 "!.next/cache/**"
+            ],
+            "env": [
+                "NEXT_PUBLIC_SUPABASE_URL",
+                "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+                "NODE_ENV"
             ]
         },
         "lint": {
             "dependsOn": [
                 "^lint"
-            ]
+            ],
+            "cache": true
+        },
+        "type-check": {
+            "cache": true
         },
         "dev": {
             "cache": false,

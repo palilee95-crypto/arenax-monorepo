@@ -1,0 +1,13 @@
+{
+    "name": "@arenax/api",
+    "version": "0.0.0",
+    "private": true,
+    "main": "./src/index.ts",
+    "dependencies": {
+        "@arenax/database": "workspace:*",
+        "@arenax/env": "workspace:*"
+    },
+    "devDependencies": {
+        "typescript": "^5"
+    }
+}

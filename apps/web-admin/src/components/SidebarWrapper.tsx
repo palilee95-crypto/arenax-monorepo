@@ -120,38 +120,41 @@ export const SidebarWrapper = ({ userId, userName, userRole }: SidebarWrapperPro
         })
     }));
 
-    const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
+    const [mounted, setMounted] = React.useState(false);
 
     React.useEffect(() => {
-        // Initial state based on screen size
-        if (window.innerWidth > 1024) {
-            setIsSidebarOpen(true);
-            document.body.classList.remove('sidebar-closed');
-        } else {
+        setMounted(true);
+        // On mobile, start closed
+        if (window.innerWidth <= 1024) {
             setIsSidebarOpen(false);
-            document.body.classList.add('sidebar-closed');
         }
     }, []);
 
+    // Sync body class with sidebar state for desktop override
+    React.useEffect(() => {
+        if (!mounted) return;
+
+        if (isSidebarOpen) {
+            document.body.classList.remove('sidebar-closed');
+        } else {
+            // Only add sidebar-closed if we are on desktop
+            if (window.innerWidth > 1024) {
+                document.body.classList.add('sidebar-closed');
+            }
+        }
+    }, [isSidebarOpen, mounted]);
+
     React.useEffect(() => {
         // Auto-close on navigation for mobile
-        if (window.innerWidth <= 1024) {
+        if (mounted && window.innerWidth <= 1024) {
             setIsSidebarOpen(false);
-            document.body.classList.add('sidebar-closed');
         }
-    }, [pathname]);
+    }, [pathname, mounted]);
 
     React.useEffect(() => {
         const handleToggleSidebar = () => {
-            setIsSidebarOpen(prev => {
-                const newState = !prev;
-                if (newState) {
-                    document.body.classList.remove('sidebar-closed');
-                } else {
-                    document.body.classList.add('sidebar-closed');
-                }
-                return newState;
-            });
+            setIsSidebarOpen(prev => !prev);
         };
         window.addEventListener('open-sidebar', handleToggleSidebar);
         return () => window.removeEventListener('open-sidebar', handleToggleSidebar);
@@ -163,12 +166,7 @@ export const SidebarWrapper = ({ userId, userName, userRole }: SidebarWrapperPro
             userName={userName}
             userRole={userRole}
             isOpen={isSidebarOpen}
-            onClose={() => {
-                if (window.innerWidth <= 1024) {
-                    setIsSidebarOpen(false);
-                    document.body.classList.add('sidebar-closed');
-                }
-            }}
+            onClose={() => setIsSidebarOpen(false)}
         />
     );
 };

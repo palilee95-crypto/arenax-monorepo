@@ -34,6 +34,8 @@ export default function VerificationPage() {
         venue_contact?: string;
         venue_courts?: string;
         venue_facilities?: string[];
+        avatar_url?: string;
+        hero_url?: string;
     }>({});
     const [districts, setDistricts] = useState<string[]>([]);
 
@@ -127,6 +129,8 @@ export default function VerificationPage() {
             preferred_foot: user.preferred_foot,
             position: user.position,
             skill_level: user.skill_level,
+            avatar_url: user.avatar_url,
+            hero_url: user.hero_url,
             ...venueInfo
         });
 
@@ -211,15 +215,15 @@ export default function VerificationPage() {
     };
 
     return (
-        <div className="dashboard-container">
-            <header className="dashboard-header">
-                <h1>User Verification</h1>
-                <p>Review and verify user profiles for platform security.</p>
+        <div className="arenax-page-container">
+            <header className="arenax-page-header">
+                <h1 className="arenax-page-title">User Verification</h1>
+                <p className="arenax-page-subtitle">Review and verify user profiles for platform security.</p>
             </header>
 
             <Card title="All Registered Users" variant="glass">
-                <div className="table-container">
-                    <table className="admin-table">
+                <div className="arenax-table-wrapper">
+                    <table className="arenax-table">
                         <thead>
                             <tr>
                                 <th>Name</th>
@@ -244,13 +248,15 @@ export default function VerificationPage() {
                                 users.map((user) => (
                                     <tr key={user.id}>
                                         <td>
-                                            <div className="user-name">
-                                                {user.first_name} {user.last_name}
+                                            <div className="arenax-user-cell">
+                                                <span className="arenax-user-name">
+                                                    {user.first_name} {user.last_name}
+                                                </span>
+                                                <span className="arenax-user-sub">{user.id.substring(0, 8)}...</span>
                                             </div>
-                                            <div className="user-id">{user.id.substring(0, 8)}...</div>
                                         </td>
                                         <td>
-                                            <span className={`role-badge ${user.role}`}>
+                                            <span className={`arenax-badge arenax-badge-role-${user.role}`}>
                                                 {user.role}
                                             </span>
                                         </td>
@@ -262,12 +268,12 @@ export default function VerificationPage() {
                                             {new Date(user.created_at).toLocaleDateString()}
                                         </td>
                                         <td>
-                                            <span className={`status-badge ${user.status || 'pending'}`}>
+                                            <span className={`arenax-badge arenax-badge-status-${user.status || 'pending'}`}>
                                                 {user.status || 'pending'}
                                             </span>
                                         </td>
                                         <td>
-                                            <div className="action-buttons">
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
                                                 {user.status !== 'verified' ? (
                                                     <Button
                                                         variant="primary"
@@ -276,7 +282,7 @@ export default function VerificationPage() {
                                                         Verify
                                                     </Button>
                                                 ) : (
-                                                    <span className="verified-text">✓ Verified</span>
+                                                    <span style={{ color: '#28a745', fontSize: '0.8rem', fontWeight: 600, padding: '0.5rem' }}>✓ Verified</span>
                                                 )}
                                                 <Button variant="secondary" onClick={() => handleDetails(user)}>Details</Button>
                                                 <button
@@ -309,47 +315,104 @@ export default function VerificationPage() {
                 title="User Details & Management"
             >
                 {selectedUser && (
-                    <form onSubmit={handleUpdate} className="edit-form">
-                        <div className="form-grid">
-                            <div className="form-group">
+                    <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {/* Profile Appearance Section */}
+                        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', marginBottom: '1rem' }}>
+                            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: '#00f2fe' }}>Profile Appearance</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '1.5rem', alignItems: 'start' }}>
+                                {/* Avatar */}
+                                <div style={{ textAlign: 'center' }}>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>AVATAR</label>
+                                    <div style={{ width: '100px', height: '100px', borderRadius: '50%', overflow: 'hidden', border: '2px solid #00f2fe', margin: '0 auto', boxShadow: '0 0 15px rgba(0,242,254,0.3)' }}>
+                                        <img
+                                            src={editData.avatar_url || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"}
+                                            alt="Avatar"
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        />
+                                    </div>
+                                    <input
+                                        className="arenax-input"
+                                        type="text"
+                                        placeholder="Avatar URL"
+                                        value={editData.avatar_url || ""}
+                                        onChange={(e) => setEditData({ ...editData, avatar_url: e.target.value })}
+                                        style={{ marginTop: '0.5rem', fontSize: '0.75rem', padding: '0.25rem' }}
+                                    />
+                                </div>
+
+                                {/* Hero Background */}
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>HERO BACKGROUND</label>
+                                    <div style={{ width: '100%', height: '100px', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.2)', marginBottom: '0.5rem', background: '#000' }}>
+                                        <img
+                                            src={editData.hero_url || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1000"}
+                                            alt="Hero"
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            onError={(e) => {
+                                                // Fallback to default on error
+                                                e.currentTarget.src = "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1000";
+                                            }}
+                                        />
+                                    </div>
+                                    <input
+                                        className="arenax-input"
+                                        type="text"
+                                        placeholder="Hero Image URL"
+                                        value={editData.hero_url || ""}
+                                        onChange={(e) => setEditData({ ...editData, hero_url: e.target.value })}
+                                        style={{ fontSize: '0.85rem' }}
+                                    />
+                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                                        Paste any image URL here. It will automatically update the player dashboard.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="arenax-form-grid">
+                            <div className="arenax-form-group">
                                 <label>First Name</label>
                                 <input
+                                    className="arenax-input"
                                     type="text"
                                     value={editData.first_name || ""}
                                     onChange={(e) => setEditData({ ...editData, first_name: e.target.value })}
                                 />
                             </div>
-                            <div className="form-group">
+                            <div className="arenax-form-group">
                                 <label>Last Name</label>
                                 <input
+                                    className="arenax-input"
                                     type="text"
                                     value={editData.last_name || ""}
                                     onChange={(e) => setEditData({ ...editData, last_name: e.target.value })}
                                 />
                             </div>
                         </div>
-                        <div className="form-grid">
-                            <div className="form-group">
+                        <div className="arenax-form-grid">
+                            <div className="arenax-form-group">
                                 <label>Email Address</label>
                                 <input
+                                    className="arenax-input"
                                     type="email"
                                     value={editData.email || ""}
                                     onChange={(e) => setEditData({ ...editData, email: e.target.value })}
                                 />
                             </div>
-                            <div className="form-group">
+                            <div className="arenax-form-group">
                                 <label>Password</label>
                                 <input
+                                    className="arenax-input"
                                     type="text"
                                     value={editData.password || ""}
                                     onChange={(e) => setEditData({ ...editData, password: e.target.value })}
                                 />
                             </div>
                         </div>
-                        <div className="form-group">
+                        <div className="arenax-form-group">
                             <label>Nationality</label>
                             <select
-                                className="admin-select"
+                                className="arenax-select"
                                 value={editData.nationality || ""}
                                 onChange={(e) => setEditData({ ...editData, nationality: e.target.value })}
                             >
@@ -357,18 +420,20 @@ export default function VerificationPage() {
                                 <option value="Other">Other</option>
                             </select>
                         </div>
-                        <div className="form-grid">
-                            <div className="form-group">
+                        <div className="arenax-form-grid">
+                            <div className="arenax-form-group">
                                 <label>Date of Birth</label>
                                 <input
+                                    className="arenax-input"
                                     type="date"
                                     value={editData.date_of_birth || ""}
                                     onChange={(e) => setEditData({ ...editData, date_of_birth: e.target.value })}
                                 />
                             </div>
-                            <div className="form-group">
+                            <div className="arenax-form-group">
                                 <label>Phone Number</label>
                                 <input
+                                    className="arenax-input"
                                     type="tel"
                                     value={editData.phone_number || ""}
                                     onChange={(e) => setEditData({ ...editData, phone_number: e.target.value })}
@@ -376,11 +441,11 @@ export default function VerificationPage() {
                             </div>
                         </div>
                         {editData.nationality === "Malaysian" ? (
-                            <div className="form-grid">
-                                <div className="form-group">
+                            <div className="arenax-form-grid">
+                                <div className="arenax-form-group">
                                     <label>State (Negeri)</label>
                                     <select
-                                        className="admin-select"
+                                        className="arenax-select"
                                         value={editData.state || ""}
                                         onChange={(e) => {
                                             const newState = e.target.value;
@@ -398,10 +463,10 @@ export default function VerificationPage() {
                                         ))}
                                     </select>
                                 </div>
-                                <div className="form-group">
+                                <div className="arenax-form-group">
                                     <label>District (Daerah)</label>
                                     <select
-                                        className="admin-select"
+                                        className="arenax-select"
                                         value={editData.district || ""}
                                         onChange={(e) => setEditData({ ...editData, district: e.target.value })}
                                         disabled={!editData.state}
@@ -414,9 +479,10 @@ export default function VerificationPage() {
                                 </div>
                             </div>
                         ) : (
-                            <div className="form-group">
+                            <div className="arenax-form-group">
                                 <label>Location (City, Country)</label>
                                 <input
+                                    className="arenax-input"
                                     type="text"
                                     placeholder="e.g. Singapore"
                                     value={editData.state || ""}
@@ -424,25 +490,25 @@ export default function VerificationPage() {
                                 />
                             </div>
                         )}
-                        <div className="form-grid">
-                            <div className="form-group">
+                        <div className="arenax-form-grid">
+                            <div className="arenax-form-group">
                                 <label>Preferred Foot</label>
                                 <select
                                     value={editData.preferred_foot || ""}
                                     onChange={(e) => setEditData({ ...editData, preferred_foot: e.target.value })}
-                                    className="admin-select"
+                                    className="arenax-select"
                                 >
                                     <option value="Right">Right</option>
                                     <option value="Left">Left</option>
                                     <option value="Both">Both</option>
                                 </select>
                             </div>
-                            <div className="form-group">
+                            <div className="arenax-form-group">
                                 <label>Position</label>
                                 <select
                                     value={editData.position || ""}
                                     onChange={(e) => setEditData({ ...editData, position: e.target.value })}
-                                    className="admin-select"
+                                    className="arenax-select"
                                 >
                                     <option value="Forward">Forward</option>
                                     <option value="Midfielder">Midfielder</option>
@@ -451,12 +517,12 @@ export default function VerificationPage() {
                                 </select>
                             </div>
                         </div>
-                        <div className="form-group">
+                        <div className="arenax-form-group">
                             <label>Skill Level</label>
                             <select
                                 value={editData.skill_level || ""}
                                 onChange={(e) => setEditData({ ...editData, skill_level: e.target.value })}
-                                className="admin-select"
+                                className="arenax-select"
                             >
                                 <option value="Beginner">Beginner</option>
                                 <option value="Intermediate">Intermediate</option>
@@ -464,12 +530,12 @@ export default function VerificationPage() {
                                 <option value="Pro">Pro</option>
                             </select>
                         </div>
-                        <div className="form-group">
+                        <div className="arenax-form-group">
                             <label>Role</label>
                             <select
                                 value={editData.role || ""}
                                 onChange={(e) => setEditData({ ...editData, role: e.target.value as any })}
-                                className="admin-select"
+                                className="arenax-select"
                             >
                                 <option value="player">Player</option>
                                 <option value="venue-owner">Venue Owner</option>
@@ -479,46 +545,41 @@ export default function VerificationPage() {
                         {editData.role === 'venue-owner' && (
                             <div className="venue-section" style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
                                 <h3 style={{ marginBottom: '1rem', fontSize: '1rem', color: '#00f2fe' }}>Venue Details</h3>
-                                <div className="form-group">
+                                <div className="arenax-form-group">
                                     <label>Venue Name</label>
                                     <input
+                                        className="arenax-input"
                                         type="text"
                                         value={editData.venue_name || ""}
                                         onChange={(e) => setEditData({ ...editData, venue_name: e.target.value })}
                                         placeholder="e.g. Arena Futsal Subang"
                                     />
                                 </div>
-                                <div className="form-group" style={{ marginTop: '1rem' }}>
+                                <div className="arenax-form-group" style={{ marginTop: '1rem' }}>
                                     <label>Venue Address</label>
                                     <textarea
-                                        style={{
-                                            background: 'rgba(255, 255, 255, 0.05)',
-                                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                                            borderRadius: '8px',
-                                            padding: '0.75rem',
-                                            color: 'var(--text-primary)',
-                                            fontSize: '0.9rem',
-                                            width: '100%',
-                                            minHeight: '80px'
-                                        }}
+                                        className="arenax-textarea"
+                                        style={{ minHeight: '80px' }}
                                         value={editData.venue_address || ""}
                                         onChange={(e) => setEditData({ ...editData, venue_address: e.target.value })}
                                         placeholder="Full address of the venue"
                                     />
                                 </div>
-                                <div className="form-grid" style={{ marginTop: '1rem' }}>
-                                    <div className="form-group">
+                                <div className="arenax-form-grid" style={{ marginTop: '1rem' }}>
+                                    <div className="arenax-form-group">
                                         <label>Venue Contact</label>
                                         <input
+                                            className="arenax-input"
                                             type="tel"
                                             value={editData.venue_contact || ""}
                                             onChange={(e) => setEditData({ ...editData, venue_contact: e.target.value })}
                                             placeholder="e.g. 03-12345678"
                                         />
                                     </div>
-                                    <div className="form-group">
+                                    <div className="arenax-form-group">
                                         <label>Total Courts</label>
                                         <input
+                                            className="arenax-input"
                                             type="number"
                                             value={editData.venue_courts || ""}
                                             onChange={(e) => setEditData({ ...editData, venue_courts: e.target.value })}
@@ -526,7 +587,7 @@ export default function VerificationPage() {
                                         />
                                     </div>
                                 </div>
-                                <div className="form-group" style={{ marginTop: '1rem' }}>
+                                <div className="arenax-form-group" style={{ marginTop: '1rem' }}>
                                     <label>Facilities</label>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
                                         {['Surau', 'Parking', 'Changing Room', 'Cafe / Vending'].map(facility => (
@@ -549,7 +610,7 @@ export default function VerificationPage() {
                             </div>
                         )}
 
-                        <div className="modal-actions">
+                        <div className="arenax-modal-actions">
                             <Button variant="primary" type="submit">Save Changes</Button>
                             <Button
                                 variant="secondary"
@@ -563,113 +624,6 @@ export default function VerificationPage() {
                     </form>
                 )}
             </Modal>
-
-            <style jsx>{`
-        .edit-form {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-        .form-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1rem;
-        }
-        .form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-        .form-group label {
-          font-size: 0.85rem;
-          color: var(--text-secondary);
-        }
-        .form-group input, .admin-select {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 8px;
-          padding: 0.75rem;
-          color: var(--text-primary);
-          font-size: 0.9rem;
-        }
-        .modal-actions {
-          display: flex;
-          justify-content: space-between;
-          margin-top: 1.5rem;
-          padding-top: 1.5rem;
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .table-container {
-          overflow-x: auto;
-          margin-top: 1rem;
-        }
-        .admin-table {
-          width: 100%;
-          border-collapse: collapse;
-          text-align: left;
-        }
-        .admin-table th {
-          padding: 1rem;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-          font-weight: 600;
-          color: var(--text-secondary);
-          font-size: 0.9rem;
-        }
-        .admin-table td {
-          padding: 1rem;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-          font-size: 0.9rem;
-        }
-        .user-name {
-          font-weight: 500;
-          color: var(--text-primary);
-        }
-        .user-id {
-          font-size: 0.75rem;
-          opacity: 0.5;
-        }
-        .role-badge {
-          padding: 0.25rem 0.6rem;
-          border-radius: 20px;
-          font-size: 0.75rem;
-          text-transform: capitalize;
-        }
-        .role-badge.player {
-          background: rgba(0, 242, 254, 0.1);
-          color: #00f2fe;
-          border: 1px solid rgba(0, 242, 254, 0.2);
-        }
-        .role-badge.venue-owner {
-          background: rgba(79, 172, 254, 0.1);
-          color: #4facfe;
-          border: 1px solid rgba(79, 172, 254, 0.2);
-        }
-        .status-badge {
-          padding: 0.25rem 0.6rem;
-          border-radius: 4px;
-          font-size: 0.75rem;
-        }
-        .status-badge.pending {
-          background: rgba(255, 193, 7, 0.1);
-          color: #ffc107;
-          border: 1px solid rgba(255, 193, 7, 0.2);
-        }
-        .status-badge.verified {
-          background: rgba(40, 167, 69, 0.1);
-          color: #28a745;
-          border: 1px solid rgba(40, 167, 69, 0.2);
-        }
-        .verified-text {
-          color: #28a745;
-          font-size: 0.8rem;
-          font-weight: 600;
-          padding: 0.5rem;
-        }
-        .action-buttons {
-          display: flex;
-          gap: 0.5rem;
-        }
-      `}</style>
         </div>
     );
 }

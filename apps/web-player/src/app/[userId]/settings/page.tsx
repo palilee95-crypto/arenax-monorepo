@@ -193,8 +193,15 @@ export default function SettingsPage() {
                             <div className="image-group">
                                 <label>Avatar</label>
                                 <div className="image-preview-wrapper">
-                                    <img src={profile.avatar_url || "https://ui-avatars.com/api/?name=" + profile.first_name} alt="Avatar" className="avatar-preview" />
-                                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                                    <img
+                                        src={profile.avatar_url || "https://ui-avatars.com/api/?name=" + profile.first_name}
+                                        alt="Avatar"
+                                        className="avatar-preview"
+                                        onError={(e) => {
+                                            e.currentTarget.src = "https://ui-avatars.com/api/?name=" + profile.first_name;
+                                        }}
+                                    />
+                                    <div className="upload-actions">
                                         <input
                                             type="file"
                                             id="avatar-upload"
@@ -223,19 +230,25 @@ export default function SettingsPage() {
                                         </Button>
                                     </div>
                                     <input
-                                        type="text"
+                                        type="hidden"
                                         placeholder="Or paste image URL..."
                                         value={profile.avatar_url || ""}
                                         onChange={(e) => setProfile({ ...profile, avatar_url: e.target.value })}
-                                        style={{ marginTop: '0.5rem' }}
                                     />
                                 </div>
                             </div>
                             <div className="image-group">
                                 <label>Hero Background</label>
                                 <div className="image-preview-wrapper hero">
-                                    <img src={profile.hero_url || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1000"} alt="Hero" className="hero-preview" />
-                                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                                    <img
+                                        src={profile.hero_url || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1000"}
+                                        alt="Hero"
+                                        className="hero-preview"
+                                        onError={(e) => {
+                                            e.currentTarget.src = "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1000";
+                                        }}
+                                    />
+                                    <div className="upload-actions">
                                         <input
                                             type="file"
                                             id="hero-upload"
@@ -264,11 +277,10 @@ export default function SettingsPage() {
                                         </Button>
                                     </div>
                                     <input
-                                        type="text"
+                                        type="hidden"
                                         placeholder="Or paste image URL..."
                                         value={profile.hero_url || ""}
                                         onChange={(e) => setProfile({ ...profile, hero_url: e.target.value })}
-                                        style={{ marginTop: '0.5rem' }}
                                     />
                                 </div>
                             </div>
@@ -508,12 +520,13 @@ export default function SettingsPage() {
                     display: grid;
                     grid-template-columns: 300px 1fr;
                     gap: 2.5rem;
-                    align-items: start;
+                    align-items: stretch;
                 }
                 .image-group {
                     display: flex;
                     flex-direction: column;
                     gap: 1rem;
+                    height: 100%;
                 }
                 .image-group label {
                     font-size: 0.75rem;
@@ -527,36 +540,42 @@ export default function SettingsPage() {
                     display: flex;
                     flex-direction: column;
                     gap: 1rem;
+                    flex: 1;
+                }
+                .upload-actions {
+                    margin-top: auto;
+                    width: 100%;
                 }
                 .avatar-preview {
                     width: 140px;
                     height: 140px;
                     border-radius: 50%;
                     object-fit: cover;
-                    border: 3px solid #00f2ff;
-                    box-shadow: 0 0 30px rgba(0, 242, 255, 0.4),
-                                0 5px 20px rgba(0, 0, 0, 0.3);
+                    border: 2px solid #009e60;
+                    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
                     transition: all 0.3s ease;
+                    margin: 0 auto;
                 }
                 .avatar-preview:hover {
                     transform: scale(1.05);
-                    box-shadow: 0 0 40px rgba(0, 242, 255, 0.6),
-                                0 8px 25px rgba(0, 0, 0, 0.4);
+                    border-color: #00c77a;
+                    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4),
+                                0 0 30px rgba(0, 158, 96, 0.4);
                 }
                 .hero-preview {
                     width: 100%;
                     height: 180px;
                     border-radius: 12px;
                     object-fit: cover;
-                    border: 2px solid rgba(0, 242, 255, 0.2);
+                    border: 2px solid #009e60;
                     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
                     transition: all 0.3s ease;
                 }
                 .hero-preview:hover {
-                    border-color: rgba(0, 242, 255, 0.4);
                     transform: scale(1.02);
+                    border-color: #00c77a;
                     box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4),
-                               0 0 30px rgba(0, 242, 255, 0.2);
+                                0 0 30px rgba(0, 158, 96, 0.4);
                 }
                 .form-actions {
                     margin-top: 2.5rem;

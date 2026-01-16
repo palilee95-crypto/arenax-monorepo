@@ -80,12 +80,23 @@
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     transform: translateX(-100%);
     overflow-y: auto;
-    /* Ensure the whole sidebar can scroll if needed */
     -webkit-overflow-scrolling: touch;
 }
 
-.arenax-sidebar.open {
-    transform: translateX(0);
+@media (min-width: 1025px) {
+    .arenax-sidebar {
+        transform: translateX(0);
+    }
+
+    body.sidebar-closed .arenax-sidebar {
+        transform: translateX(-100%);
+    }
+}
+
+@media (max-width: 1024px) {
+    .arenax-sidebar.open {
+        transform: translateX(0);
+    }
 }
 
 .sidebar-header {
@@ -325,14 +336,20 @@
     position: fixed;
     top: 0;
     right: 0;
-    left: 260px;
+    left: 0;
     z-index: 1000;
     gap: var(--space-md);
     transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-body.sidebar-closed .arenax-topbar {
-    left: 0;
+@media (min-width: 1025px) {
+    .arenax-topbar {
+        left: 260px;
+    }
+
+    body.sidebar-closed .arenax-topbar {
+        left: 0;
+    }
 }
 
 .topbar-left {
@@ -778,8 +795,398 @@ body.sidebar-closed .arenax-topbar {
     color: #ff4d4d;
 }
 
-.menu-item.logout svg {
+/* Page Layouts & Typography */
+.arenax-page-container {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.arenax-page-header {
+    margin-bottom: 3rem;
+}
+
+.arenax-page-title {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0.5));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 700;
+}
+
+.arenax-page-subtitle {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+}
+
+/* Grid Layouts */
+.arenax-wallet-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 2rem;
+}
+
+.arenax-dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+.arenax-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    padding: 1rem 0;
+}
+
+.arenax-span-2 {
+    grid-column: span 2;
+}
+
+@media (max-width: 768px) {
+
+    .arenax-wallet-grid,
+    .arenax-dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .arenax-span-2 {
+        grid-column: auto;
+    }
+}
+
+/* Component Specifics */
+.arenax-balance-card {
+    padding: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    height: fit-content;
+}
+
+.arenax-balance-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.arenax-stat-item {
+    text-align: center;
+}
+
+.arenax-stat-label {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.arenax-stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.arenax-stat-value.large {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+/* Transaction List Helpers */
+.arenax-tx-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.arenax-tx-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    transition: var(--transition);
+}
+
+.arenax-tx-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateX(4px);
+}
+
+.arenax-tx-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.arenax-tx-icon.received {
+    background: rgba(0, 255, 128, 0.1);
+    color: #00ff80;
+}
+
+.arenax-tx-icon.sent {
+    background: rgba(255, 80, 80, 0.1);
+    color: #ff5050;
+}
+
+.arenax-tx-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin: 0 1rem;
+}
+
+.arenax-tx-title {
+    color: #fff;
+    font-weight: 500;
+}
+
+.arenax-tx-date {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.arenax-tx-amount {
+    font-weight: 600;
+    font-size: 1.1rem;
+    white-space: nowrap;
+}
+
+.arenax-tx-amount.positive {
+    color: #00ff80;
+}
+
+.arenax-tx-amount.negative {
+    color: #ff5050;
+}
+
+.arenax-balance-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    width: 100%;
+    margin-top: 0.5rem;
+}
+
+/* Admin Tables */
+.arenax-table-wrapper {
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+
+.arenax-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.9rem;
+}
+
+.arenax-table th {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+.arenax-table td {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    vertical-align: middle;
+}
+
+.arenax-table tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* User Info Cells */
+.arenax-user-cell {
+    display: flex;
+    flex-direction: column;
+}
+
+.arenax-user-name {
+    font-weight: 500;
+    color: #fff;
+}
+
+.arenax-user-sub {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* Dashboard Specifics */
+.arenax-verification-info {
+    text-align: center;
+    padding: 1rem 0;
+}
+
+.arenax-pending-count {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #fbbf24;
+    margin-bottom: 0.25rem;
+}
+
+.arenax-tx-main {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.arenax-tx-user {
+    font-weight: 500;
+    color: #fff;
+}
+
+.arenax-tx-desc {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.arenax-tx-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.arenax-view-all-link {
+    display: block;
+    text-align: center;
+    margin-top: 1rem;
+    color: var(--primary);
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.arenax-view-all-link:hover {
+    text-decoration: underline;
+    color: #fff;
+}
+
+/* Badges */
+.arenax-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: capitalize;
+    display: inline-block;
+}
+
+/* Status Badges */
+.arenax-badge-status-completed,
+.arenax-badge-status-verified,
+.arenax-badge-status-success {
+    background: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+    border: 1px solid rgba(40, 167, 69, 0.2);
+}
+
+.arenax-badge-status-pending,
+.arenax-badge-status-warning {
+    background: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+    border: 1px solid rgba(255, 193, 7, 0.2);
+}
+
+.arenax-badge-status-failed,
+.arenax-badge-status-error {
+    background: rgba(255, 77, 77, 0.1);
     color: #ff4d4d;
+    border: 1px solid rgba(255, 77, 77, 0.2);
+}
+
+.arenax-badge-status-info {
+    background: rgba(0, 170, 255, 0.1);
+    color: #00aaff;
+    border: 1px solid rgba(0, 170, 255, 0.2);
+}
+
+/* Role Badges */
+.arenax-badge-role-player {
+    background: rgba(0, 242, 254, 0.1);
+    color: #00f2fe;
+    border: 1px solid rgba(0, 242, 254, 0.2);
+}
+
+.arenax-badge-role-venue-owner {
+    background: rgba(79, 172, 254, 0.1);
+    color: #4facfe;
+    border: 1px solid rgba(79, 172, 254, 0.2);
+}
+
+/* Forms */
+.arenax-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.arenax-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.arenax-form-group label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.arenax-input,
+.arenax-select,
+.arenax-textarea {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 0.75rem;
+    color: #fff;
+    font-size: 0.9rem;
+    width: 100%;
+    transition: var(--transition);
+}
+
+.arenax-input:focus,
+.arenax-select:focus,
+.arenax-textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* Log Specifics */
+.arenax-log-details pre {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.arenax-modal-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 @media (max-width: 768px) {
@@ -1204,4 +1611,22 @@ body.sidebar-closed .arenax-topbar {
     .app-content {
         padding-bottom: 100px !important;
     }
+}
+
+/* Page Transitions */
+@keyframes pageEnter {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.arenax-animate-enter {
+    animation: pageEnter 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    width: 100%;
 }
